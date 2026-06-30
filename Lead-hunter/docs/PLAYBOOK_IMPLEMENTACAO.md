@@ -3,7 +3,8 @@
 > Documento mestre. Registra as decisões tomadas, dependências e a divisão das fases
 > em tarefas. Fontes: `PLAYBOOK` (autoritativo), `PROJETO_SCRAPER_BH.md` (regras de
 > negócio), `openclaw-knowledge-base.md` (modelo de operação dos agentes).
-> Status: **desenho aprovado — aguardando implementação da Fase 1.**
+> Status: **Fases 1–8 implementadas e validadas.** Pendências opcionais: CRUD de
+> `opportunities` e página de aprovações (ver Fase 7).
 
 ---
 
