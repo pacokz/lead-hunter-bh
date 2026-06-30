@@ -220,7 +220,11 @@ Lead-hunter/
   `GET /follow-ups/upcoming` (agenda global). Front: painel no detalhe do lead (agendar/concluir/
   excluir follow-up + registrar contato) e página `/follow-ups` (agenda, atrasados em vermelho).
   Validado por screenshot end-to-end.
-- [ ] **Pendente (deterministico, opcional):** opportunities CRUD (upsell do Megumi), página de aprovações
+- [ ] **Backlog — só quando houver demanda real (decisão 30/06):** opportunities CRUD
+  (upsell do Megumi) e página de aprovações. Não construir antes de ter o problema:
+  o upsell ainda não tem cliente fechado pra rastrear, e as aprovações que sobraram
+  (demo, gasto de API acima do teto) já acontecem no Discord. YAGNI — reavaliar quando
+  surgir o caso de uso concreto ("preciso registrar a automação prometida ao cliente X").
 
 ### Fase 8 — Operação contínua  ✅ **CONCLUÍDA** (busca diária = manual por causa da cota Google)
 - [x] Crons via Task Scheduler do Windows (scripts em `ops/`):
