@@ -1,0 +1,51 @@
+{
+  "meta": {
+    "nome": "Fialho Odontologia",
+    "slug": "fialho-odontologia",
+    "bairro": "Savassi",
+    "phone": "(31) 98426-7230",
+    "whatsapp": "https://wa.me/5531984267230",
+    "descricao": "Fialho Odontologia — odontologia de alto padrão na Savassi. 5.0 no Google, 241 avaliações.",
+    "ogImage": "img/foto-1.jpg"
+  },
+  "art_direction": {
+    "concept": "Clínica boutique de alto padrão na Savassi — luxo discreto e acolhedor",
+    "type_system": "serif-high-contrast",
+    "palette": { "brand": "#8A9B6E" },
+    "animations": ["reveal", "aurora", "textgen", "marquee", "parallax", "shimmer"]
+  },
+  "sections": [
+    { "type": "header", "props": { "sub": "Odontologia · Savassi", "cta": "Agendar" } },
+    { "type": "hero", "variant": "editorial", "props": {
+      "eyebrow": "Odontologia de alto padrão · Savassi",
+      "headline": "O seu melhor sorriso começa aqui.",
+      "sub": "Atendimento exclusivo e personalizado na Savassi — tecnologia de ponta e o cuidado de quem ama o que faz.",
+      "cta": "Agendar avaliação", "image": "img/foto-1.jpg", "rating": "5.0", "reviews": 241 } },
+    { "type": "ticker", "props": { "items": ["Invisalign", "Implantes", "Estética", "Clareamento", "Ortodontia", "Próteses"] } },
+    { "type": "manifesto", "props": { "eyebrow": "Nossa filosofia", "quote": "Uma família saudável revela sorrisos verdadeiros — e nós amamos sorrisos." } },
+    { "type": "services", "variant": "zigzag", "props": {
+      "title": "Tratamentos pensados para você", "intro": "Do estético ao clínico, cada procedimento com tecnologia e cuidado.",
+      "items": [
+        { "title": "Odontologia estética", "desc": "Lentes, facetas e harmonização para revelar o seu sorriso mais bonito.", "image": "img/foto-2.jpg" },
+        { "title": "Ortodontia & Invisalign", "desc": "Alinhadores transparentes e aparelhos com acompanhamento próximo.", "image": "img/foto-3.jpg" },
+        { "title": "Implantes", "desc": "Recupere função e confiança com soluções modernas e duradouras.", "image": "img/foto-4.jpg" },
+        { "title": "Tratamento de canal", "desc": "Endodontia precisa, sem dor, com tecnologia de imagem." },
+        { "title": "Limpeza & clareamento", "desc": "Saúde e brilho com protocolos seguros e profissionais." },
+        { "title": "Próteses", "desc": "Funcionalidade e naturalidade que devolvem a confiança." }
+      ] } },
+    { "type": "stats", "props": { "style": "band", "items": [
+      { "count": "5.0", "label": "Nota no Google" },
+      { "count": "241", "suffix": "+", "label": "Avaliações" },
+      { "value": "Savassi", "label": "Localização" },
+      { "value": "100%", "label": "Atendimento humano" } ] } },
+    { "type": "gallery", "variant": "collage", "props": {
+      "eyebrow": "Conheça o espaço", "title": "Nosso consultório, na Savassi",
+      "images": ["img/foto-1.jpg", "img/foto-2.jpg", "img/foto-3.jpg", "img/foto-4.jpg", "img/foto-5.jpg"] } },
+    { "type": "cta", "variant": "band", "props": {
+      "title": "Vamos cuidar do seu sorriso?", "sub": "Agende sua avaliação pelo WhatsApp — rápido e sem compromisso.", "cta": "Falar no WhatsApp" } },
+    { "type": "contact", "props": {
+      "eyebrow": "Onde estamos", "title": "Venha nos visitar",
+      "address": "Av. Getúlio Vargas, 874 - Sala 1603 - Savassi, Belo Horizonte - MG, 30112-020", "phone": "(31) 98426-7230" } },
+    { "type": "footer", "props": { "sub": "Odontologia · Savassi", "address": "Av. Getúlio Vargas, 874 - Sala 1603, Savassi, BH", "phone": "(31) 98426-7230" } }
+  ]
+}

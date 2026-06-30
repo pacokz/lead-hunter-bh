@@ -1,0 +1,65 @@
+{
+  "meta": {
+    "nome": "Grupo Odontológico Carlos Teodorico",
+    "slug": "grupo-odontologico-carlos-teodorico-l-de",
+    "bairro": "Funcionários",
+    "phone": "(31) 97339-9487",
+    "whatsapp": "https://wa.me/5531973399487",
+    "descricao": "Grupo Odontológico Carlos Teodorico — odontologia de alto padrão nos Funcionários, BH. 50 anos de tradição, nota 5 com 780 avaliações no Google.",
+    "ogImage": "img/foto-1.webp"
+  },
+  "art_direction": {
+    "concept": "Clínica odontológica de alto padrão e 50 anos de tradição — confiança clínica com sofisticação discreta, na cor azul da marca",
+    "type_system": "serif-high-contrast",
+    "palette": { "brand": "#0170b9", "deep": "#003254" },
+    "animations": ["reveal", "textgen", "parallax", "shimmer"]
+  },
+  "sections": [
+    { "type": "header", "props": { "sub": "Odontologia · Funcionários, BH", "cta": "Agendar avaliação" } },
+    { "type": "hero", "variant": "split", "props": {
+      "eyebrow": "Grupo Odontológico Carlos Teodorico · Funcionários, BH",
+      "headline": "Há 50 anos cuidando do seu sorriso.",
+      "sub": "Implantes, lentes, ortodontia e estética em uma clínica de alto padrão no coração dos Funcionários. A confiança de meio século — nota 5 com 780 avaliações no Google.",
+      "cta": "Agendar avaliação", "cta2": "Ver tratamentos",
+      "image": "img/foto-1.webp", "rating": "5.0", "reviews": 780 } },
+    { "type": "stats", "props": { "style": "band", "items": [
+      { "count": "50", "suffix": " anos", "label": "De tradição em BH" },
+      { "count": "5.0", "label": "Nota no Google" },
+      { "count": "780", "suffix": "+", "label": "Avaliações reais" },
+      { "value": "Funcionários", "label": "15º andar · Belo Horizonte" } ] } },
+    { "type": "about", "props": {
+      "eyebrow": "Quem somos",
+      "text": "Cuidando do seu sorriso há cinco décadas.",
+      "body": "O Grupo Odontológico Carlos Teodorico é referência em odontologia de alto padrão em Belo Horizonte. No 15º andar, nos Funcionários, reunimos tradição, tecnologia e uma equipe que trata cada paciente pelo nome — do primeiro contato ao sorriso final.",
+      "image": "img/foto-8.webp" } },
+    { "type": "services", "variant": "zigzag", "props": {
+      "title": "Tratamentos para cada fase do seu sorriso", "intro": "Do clínico ao estético, cada procedimento planejado com tecnologia e o cuidado de quem faz isso há 50 anos.",
+      "items": [
+        { "title": "Implantes dentários", "desc": "Reabilitação oral com implantes que devolvem função, estética e a segurança de mastigar e sorrir de novo.", "image": "img/foto-3.webp" },
+        { "title": "Lentes e estética do sorriso", "desc": "Lentes de contato dental e facetas para um sorriso harmônico e natural, planejado especialmente pra você.", "image": "img/foto-2.webp" },
+        { "title": "Ortodontia e alinhadores", "desc": "Alinhadores transparentes e aparelhos com acompanhamento próximo, no seu ritmo e sem exposição.", "image": "img/foto-5.webp" },
+        { "title": "Clareamento dental", "desc": "Protocolos seguros que devolvem o brilho do seu sorriso, com resultado visível e duradouro.", "image": "img/foto-6.webp" },
+        { "title": "Planejamento digital", "desc": "Cada tratamento começa por um diagnóstico preciso e um plano sob medida." },
+        { "title": "Próteses e reabilitação", "desc": "Soluções funcionais e naturais que devolvem a confiança no dia a dia." }
+      ] } },
+    { "type": "ticker", "props": { "items": ["Implantes", "Lentes de contato dental", "Ortodontia", "Alinhadores transparentes", "Clareamento", "Próteses", "Estética do sorriso"] } },
+    { "type": "manifesto", "props": {
+      "eyebrow": "Nossa essência",
+      "quote": "Cada sorriso carrega uma história. Há 50 anos, cuidamos da sua como se fosse a primeira." } },
+    { "type": "gallery", "variant": "grid", "props": {
+      "eyebrow": "O espaço",
+      "title": "Uma clínica feita pra te receber bem",
+      "images": ["img/foto-1.webp", "img/foto-8.webp", "img/foto-7.webp", "img/foto-2.webp", "img/foto-6.webp", "img/foto-5.webp"] } },
+    { "type": "cta", "variant": "fullbleed", "props": {
+      "eyebrow": "Agende agora",
+      "title": "Seu sorriso merece meio século de experiência",
+      "sub": "Fale com a gente no WhatsApp e marque sua avaliação — sem compromisso.",
+      "cta": "Falar no WhatsApp", "image": "img/foto-1.webp" } },
+    { "type": "contact", "props": {
+      "eyebrow": "Onde estamos", "title": "Venha nos visitar",
+      "address": "R. Tomé de Souza, 860 - 15º andar - Funcionários, Belo Horizonte - MG, 30140-131", "phone": "(31) 97339-9487" } },
+    { "type": "footer", "props": {
+      "sub": "Odontologia de alto padrão · Funcionários, BH",
+      "address": "R. Tomé de Souza, 860 - 15º andar, Funcionários, BH", "phone": "(31) 97339-9487" } }
+  ]
+}

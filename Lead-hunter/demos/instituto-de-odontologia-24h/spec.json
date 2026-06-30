@@ -1,0 +1,85 @@
+{
+  "meta": {
+    "nome": "Instituto de Odontologia 24h",
+    "slug": "instituto-de-odontologia-24h",
+    "bairro": "Funcionários",
+    "phone": "(31) 3044-2626",
+    "whatsapp": "https://wa.me/553130442626",
+    "descricao": "Instituto de Odontologia 24h — pronto-socorro odontológico em Belo Horizonte, aberto 24 horas, todos os dias. Atendimento de urgência: dor, trauma, abscesso e aparelho. Nota 4,3 com 406 avaliações no Google.",
+    "ogImage": "img/recepcao.jpg"
+  },
+  "art_direction": {
+    "concept": "Pronto-socorro odontológico 24h — urgência com acolhimento, acessível a qualquer hora; identidade vinho da marca, tom firme e direto",
+    "type_system": "grotesk-bold",
+    "palette": { "brand": "#672940", "deep": "#2f121d" },
+    "animations": ["reveal", "textgen", "shimmer"]
+  },
+  "sections": [
+    { "type": "header", "props": { "sub": "Pronto-socorro odontológico · BH", "cta": "Emergência 24h" } },
+    { "type": "hero", "variant": "split", "props": {
+      "eyebrow": "Aberto 24 horas · Todos os dias",
+      "headline": "Dor de dente não espera. A gente também não.",
+      "sub": "Pronto-socorro odontológico em Belo Horizonte, aberto 24h. Atendimento de urgência a qualquer hora — dor aguda, trauma, abscesso ou aparelho quebrado.",
+      "cta": "Chamar no WhatsApp", "cta2": "Como funciona",
+      "image": "img/recepcao.jpg", "rating": "4.3", "reviews": 406 } },
+    { "type": "banner", "props": {
+      "text": "Está com dor agora? Atendimento de urgência 24 horas por dia.",
+      "cta": "Falar com a emergência" } },
+    { "type": "steps", "props": {
+      "eyebrow": "Na emergência",
+      "title": "Como funciona o atendimento 24h",
+      "items": [
+        { "title": "Chame no WhatsApp", "desc": "Mande mensagem a qualquer hora — madrugada, fim de semana, feriado. Alguém responde." },
+        { "title": "Triagem da urgência", "desc": "A gente entende a sua dor e te orienta sobre o próximo passo já no primeiro contato." },
+        { "title": "Atendimento de plantão", "desc": "Você vem à clínica nos Funcionários e é atendido por um dentista de plantão." },
+        { "title": "Alívio e plano", "desc": "Resolvemos a urgência e, se precisar, montamos o tratamento pra finalizar com calma." }
+      ] } },
+    { "type": "feature", "props": {
+      "eyebrow": "Estrutura completa",
+      "title": "Consultórios equipados, prontos a qualquer hora",
+      "body": "Não é plantão improvisado: é uma clínica completa, com consultórios equipados e equipe de plantão para resolver a sua urgência com segurança — de dor aguda a trauma e reparos.",
+      "image": "img/consultorio.jpg",
+      "cta": "Chamar no WhatsApp" } },
+    { "type": "services", "variant": "list", "props": {
+      "eyebrow": "O que atendemos",
+      "title": "Urgências odontológicas 24h",
+      "items": [
+        { "title": "Dor de dente aguda", "desc": "Alívio rápido pra você voltar a dormir e comer sem sofrer." },
+        { "title": "Trauma e fratura", "desc": "Quedas, acidentes e dentes quebrados — atendimento imediato." },
+        { "title": "Abscesso e infecção", "desc": "Inchaço e dor que não podem esperar pelo horário comercial." },
+        { "title": "Aparelho machucando", "desc": "Fio solto ou bráquete ferindo a boca — ajustamos pra aliviar." },
+        { "title": "Restauração ou coroa caída", "desc": "Resolvemos sem você ter que esperar dias por um horário." },
+        { "title": "Sangramento persistente", "desc": "Sangramento que não para depois de extração ou trauma." }
+      ] } },
+    { "type": "stats", "props": { "style": "band", "items": [
+      { "count": "24", "suffix": "h", "label": "Aberto todos os dias" },
+      { "count": "4.3", "label": "Nota no Google" },
+      { "count": "406", "suffix": "+", "label": "Avaliações reais" },
+      { "value": "Funcionários", "label": "Av. do Contorno · BH" } ] } },
+    { "type": "faq", "props": {
+      "eyebrow": "Antes de vir",
+      "title": "Perguntas frequentes",
+      "items": [
+        { "q": "Vocês atendem de madrugada e fim de semana?", "a": "Sim. O pronto-socorro funciona 24 horas, todos os dias — incluindo madrugada, fins de semana e feriados." },
+        { "q": "Preciso marcar antes ou posso chegar com dor?", "a": "Em urgência, é só chamar no WhatsApp e vir. A gente faz a triagem e te atende assim que chegar." },
+        { "q": "Que tipo de urgência vocês resolvem?", "a": "Dor aguda, trauma, dente quebrado, abscesso, sangramento, restauração ou coroa que caiu e problemas com aparelho." },
+        { "q": "Atendem só urgência ou também tratamento completo?", "a": "Os dois. Resolvemos a urgência na hora e, se você quiser, montamos o tratamento completo depois." },
+        { "q": "Onde fica a clínica?", "a": "Av. do Contorno, 4747 - Sala 1308, Funcionários, Belo Horizonte." }
+      ] } },
+    { "type": "cta", "variant": "fullbleed", "props": {
+      "eyebrow": "Está com dor agora?",
+      "title": "Não espere a dor piorar",
+      "sub": "Chame a emergência no WhatsApp — atendimento 24 horas, todos os dias.",
+      "cta": "Chamar no WhatsApp", "image": "img/recepcao.jpg" } },
+    { "type": "contact", "props": {
+      "eyebrow": "Onde estamos",
+      "title": "Pronto-socorro nos Funcionários",
+      "address": "Av. do Contorno, 4747 - Sala 1308 - Funcionários, Belo Horizonte - MG, 30110-921",
+      "phone": "(31) 3044-2626",
+      "hours": "24 horas · todos os dias" } },
+    { "type": "footer", "props": {
+      "sub": "Pronto-socorro odontológico · Funcionários, BH",
+      "address": "Av. do Contorno, 4747 - Sala 1308, Funcionários, BH",
+      "phone": "(31) 3044-2626" } }
+  ]
+}

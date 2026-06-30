@@ -1,0 +1,44 @@
+name: software-house
+
+services:
+  # Hermes Agent (Nous Research) instalado em container Linux.
+  hermes:
+    build:
+      context: ./hermes
+      dockerfile: Dockerfile
+    image: software-house-hermes:latest
+    container_name: software-house-hermes
+    restart: unless-stopped
+    env_file:
+      - ./hermes/.env
+    stdin_open: true       # mantem STDIN aberto (para 'hermes setup')
+    tty: true              # aloca um TTY para o agente interativo
+    ports:
+      - "127.0.0.1:9119:9119"   # painel web -> http://localhost:9119 (so na sua maquina)
+    volumes:
+      - hermes-data:/data  # persiste config e credenciais (~/.hermes -> /data)
+    networks:
+      - software-house
+
+  # Bot da Software House. Conversa com o Hermes pela rede interna.
+  # Ainda sem codigo real: a imagem sobe como placeholder e fica de pe.
+  bot:
+    build:
+      context: ./bot
+      dockerfile: Dockerfile
+    image: software-house-bot:latest
+    container_name: software-house-bot
+    restart: unless-stopped
+    env_file:
+      - ./bot/.env
+    depends_on:
+      - hermes
+    networks:
+      - software-house
+
+networks:
+  software-house:
+    driver: bridge
+
+volumes:
+  hermes-data:

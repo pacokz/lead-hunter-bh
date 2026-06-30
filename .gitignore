@@ -1,0 +1,37 @@
+# === Segredos (NUNCA commitar) ===
+.env
+**/.env
+**/.env.*
+!**/.env.example
+**/.webhook.txt
+.overclock-app/
+
+# === Python ===
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# === Node / Next.js ===
+node_modules/
+**/node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# === Dados / artefatos gerados ===
+data/
+**/data/
+*.db
+*.sql
+**/backups/
+*.log
+*.bak
+**/memory/*.bak
+screenshots/
+**/screenshots/
+
+# === SO / editor ===
+.DS_Store
+Thumbs.db

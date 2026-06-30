@@ -1,0 +1,3 @@
+# Dependencias do bot - adicionar quando o bot for desenvolvido.
+httpx>=0.27.0
+python-dotenv>=1.0.0
