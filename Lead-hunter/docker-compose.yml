@@ -30,7 +30,8 @@ services:
       postgres:
         condition: service_healthy
     ports:
-      - "8000:8000"
+      # loopback-only: backend nunca exposto na internet (acesso via proxy do Next)
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./backend:/app
 
