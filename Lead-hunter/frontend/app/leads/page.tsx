@@ -1,29 +1,55 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useQuery } from "@tanstack/react-query";
 import { getJSON, RankedLead } from "@/lib/api";
 import { SiteBadge, BandBadge, BAND_LABELS, SITE_LABELS } from "@/components/badges";
 
+const PAGE_SIZE = 50;
+
 export default function LeadsPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ["ranked"],
-    queryFn: () => getJSON<RankedLead[]>("/leads/ranked?limit=500"),
+    queryFn: () => getJSON<RankedLead[]>("/leads/ranked?limit=1000"),
   });
 
   const [search, setSearch] = useState("");
   const [band, setBand] = useState("");
   const [site, setSite] = useState("");
+  const [niche, setNiche] = useState("");
+  const [page, setPage] = useState(1);
+
+  const niches = useMemo(() => {
+    const set = new Set<string>();
+    for (const l of data || []) if (l.category) set.add(l.category);
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [data]);
 
   const filtered = useMemo(() => {
     return (data || []).filter((l) => {
       if (search && !l.name.toLowerCase().includes(search.toLowerCase())) return false;
       if (band && l.band !== band) return false;
       if (site && l.site_class !== site) return false;
+      if (niche && l.category !== niche) return false;
       return true;
     });
-  }, [data, search, band, site]);
+  }, [data, search, band, site, niche]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+
+  // volta pra primeira página sempre que um filtro muda
+  useEffect(() => setPage(1), [search, band, site, niche]);
+  // corrige a página se o total encolher (ex.: filtro reduziu resultados)
+  useEffect(() => setPage((p) => Math.min(p, totalPages)), [totalPages]);
+
+  const paged = useMemo(
+    () => filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+    [filtered, page]
+  );
+
+  const from = filtered.length === 0 ? 0 : (page - 1) * PAGE_SIZE + 1;
+  const to = Math.min(page * PAGE_SIZE, filtered.length);
 
   return (
     <div>
@@ -49,6 +75,12 @@ export default function LeadsPage() {
             <option key={k} value={k}>{v}</option>
           ))}
         </select>
+        <select value={niche} onChange={(e) => setNiche(e.target.value)} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <option value="">Todos os nichos</option>
+          {niches.map((n) => (
+            <option key={n} value={n}>{n}</option>
+          ))}
+        </select>
         <span className="ml-auto self-center text-sm text-slate-500">{filtered.length} leads</span>
       </div>
 
@@ -70,7 +102,7 @@ export default function LeadsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filtered.map((l) => (
+              {paged.map((l) => (
                 <tr key={l.place_id} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-bold text-slate-900">{l.score}</td>
                   <td className="px-4 py-3"><BandBadge value={l.band} /></td>
@@ -88,6 +120,33 @@ export default function LeadsPage() {
               ))}
             </tbody>
           </table>
+        </div>
+      )}
+
+      {data && filtered.length > 0 && (
+        <div className="mt-4 flex flex-wrap items-center gap-3">
+          <span className="text-sm text-slate-500">
+            {from}–{to} de {filtered.length}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page <= 1}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-slate-50"
+            >
+              Anterior
+            </button>
+            <span className="text-sm text-slate-600">
+              Página {page} de {totalPages}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page >= totalPages}
+              className="rounded-lg border border-slate-300 px-3 py-2 text-sm disabled:cursor-not-allowed disabled:opacity-40 enabled:hover:bg-slate-50"
+            >
+              Próxima
+            </button>
+          </div>
         </div>
       )}
     </div>
