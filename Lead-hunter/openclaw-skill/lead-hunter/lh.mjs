@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Lead Hunter BH — cliente CLI pra Sukuna operar o backend (FastAPI em localhost:8000).
-import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, unlinkSync } from "fs";
+import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, unlinkSync, statSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { spawnSync } from "child_process";
@@ -24,12 +24,22 @@ function parseFlags(arr) {
 }
 
 // ── Score de similaridade: pra duas demos não saírem com a mesma estrutura ──
+// LICAO (lucca-machado, 2026-07-01): trocar so o type_system mascarava a espinha repetida
+// (formula antiga dava 46% pra estruturas quase identicas). Agora: espinha (LCS) pesa mais,
+// Jaccard pega o "mesmo conjunto de secoes", hero repetido vs a demo anterior BLOQUEIA,
+// e o demo-render roda o check SOZINHO (nao depende da disciplina de rodar demo-similar).
+const CATALOG = ["hero:split","hero:editorial","hero:fullbleed","hero:centered","ticker","manifesto","about",
+  "services:zigzag","services:list","services:cards","feature","steps","stats",
+  "testimonial:single","testimonial:cards","testimonial:marquee",
+  "gallery:collage","gallery:grid","gallery:strip","gallery:masonry",
+  "bento","beforeafter","team","logos","highlights","faq","banner","cta:band","cta:fullbleed","cta:split"];
 function signature(spec) {
   return {
     ts: (spec.art_direction && spec.art_direction.type_system) || "",
     secs: (spec.sections || []).map((s) => s.type + (s.variant ? ":" + s.variant : "")),
   };
 }
+const heroOf = (sig) => sig.secs.find((s) => s.startsWith("hero:")) || null;
 function lcsLen(a, b) {
   const n = b.length; const dp = Array(n + 1).fill(0);
   for (let i = 1; i <= a.length; i++) {
@@ -39,9 +49,48 @@ function lcsLen(a, b) {
   return dp[n];
 }
 function similarity(a, b) {
-  const tsScore = a.ts === b.ts ? 0.35 : 0;
-  const seqSim = lcsLen(a.secs, b.secs) / Math.max(a.secs.length, b.secs.length, 1);
-  return tsScore + 0.65 * seqSim;
+  const lcs = lcsLen(a.secs, b.secs) / Math.max(a.secs.length, b.secs.length, 1);
+  const sa = new Set(a.secs), sb = new Set(b.secs);
+  const inter = [...sa].filter((x) => sb.has(x)).length;
+  const jac = inter / Math.max(new Set([...sa, ...sb]).size, 1);
+  return { score: (a.ts === b.ts ? 0.25 : 0) + 0.45 * lcs + 0.3 * jac, lcs };
+}
+// Analisa a spec de <slug> contra todas as outras demos (ignora pastas _teste*).
+// Retorna { blocks: [motivos bloqueantes], warns: [], neverUsed: [], worst: {slug, pct} }
+function analyzeVariety(slug) {
+  const specPath = resolve(ROOT, slug, "spec.json");
+  if (!existsSync(specPath)) return { error: `spec.json nao encontrada em demos/${slug}/` };
+  let sig;
+  try { sig = signature(JSON.parse(readFileSync(specPath, "utf8"))); }
+  catch (e) { return { error: "spec invalida: " + e.message }; }
+  const others = [];
+  for (const d of readdirSync(ROOT, { withFileTypes: true })) {
+    if (!d.isDirectory() || d.name === slug || d.name.startsWith("_")) continue;
+    const sp = resolve(ROOT, d.name, "spec.json");
+    if (!existsSync(sp)) continue;
+    try {
+      const st = statSync(sp);
+      others.push({ slug: d.name, sig: signature(JSON.parse(readFileSync(sp, "utf8"))), mtime: st.mtimeMs });
+    } catch {}
+  }
+  others.sort((x, y) => y.mtime - x.mtime);
+  const blocks = [], warns = [];
+  let worst = { slug: null, pct: 0 };
+  for (const o of others) {
+    const { score, lcs } = similarity(sig, o.sig);
+    if (score > worst.pct / 100) worst = { slug: o.slug, pct: Math.round(score * 100) };
+    if (score >= 0.62) blocks.push(`estrutura ${Math.round(score * 100)}% parecida com "${o.slug}"`);
+    else if (lcs >= 0.7) blocks.push(`ESPINHA quase identica a "${o.slug}" (${Math.round(lcs * 100)}% da sequencia de secoes em comum) — trocar so o type_system NAO conta como variedade`);
+  }
+  const myHero = heroOf(sig);
+  if (myHero && others.length && heroOf(others[0].sig) === myHero)
+    blocks.push(`hero "${myHero}" e o MESMO da demo anterior ("${others[0].slug}") — rode entre as 4 variantes (split/editorial/fullbleed/centered)`);
+  const usedEver = new Set(others.flatMap((o) => o.sig.secs));
+  const neverUsed = CATALOG.filter((x) => !usedEver.has(x) && !sig.secs.includes(x));
+  const usedByMeNew = sig.secs.filter((x) => !usedEver.has(x));
+  if (others.length >= 2 && usedByMeNew.length === 0)
+    warns.push("esta spec nao usa NENHUMA secao/variante que ja nao apareceu nas outras demos — inclua pelo menos 1 diferente");
+  return { blocks, warns, neverUsed, worst };
 }
 
 // Baixa as imagens reais do site atual do lead pra pasta da demo.
@@ -273,38 +322,43 @@ const run = {
       console.error("Se o Samuel mandou assets do lead (Instagram), inclua no brief. So renderize com material real na mao. (--force pula o gate.)");
       process.exit(1);
     }
+    // guarda a spec na pasta da demo (registro + base do gate de variedade)
+    const specFile = resolve(dir, "spec.json");
+    if (resolve(rest[0]) !== specFile) writeFileSync(specFile, JSON.stringify(spec, null, 2), "utf8");
+    // GATE DE VARIEDADE AUTOMATICO — nao depende de rodar demo-similar na mao
+    const va = analyzeVariety(slug);
+    if (!va.error) {
+      for (const w of va.warns) console.log(`AVISO: ${w}`);
+      if (va.blocks.length && !flags.force) {
+        console.error(`\nRENDER BLOQUEADO — ESTRUTURA REPETIDA (o site vai sair igual ao anterior):`);
+        for (const b of va.blocks) console.error(`  - ${b}`);
+        if (va.neverUsed.length) console.error(`\nSecoes que voce nunca usou (use 1-2): ${va.neverUsed.slice(0, 10).join(", ")}`);
+        console.error(`Troque a variante do hero, mude a ordem e a composicao, e rode de novo. (--force pula, NAO recomendado.)`);
+        process.exit(1);
+      }
+    }
     const file = resolve(dir, "index.html");
     writeFileSync(file, renderSpec(spec), "utf8");
     const nSec = (spec.sections || []).length;
     console.log(`RENDERIZADO da spec (${nSec} secoes) -> ${file}`);
-    console.log(`PROXIMO: verifica-interface "${file}" + design-critique; se ok, demo-publicar ${slug} --scope balmor-s-projects`);
+    if (va.neverUsed && va.neverUsed.length) console.log(`(variedade futura: ainda sem uso — ${va.neverUsed.slice(0, 8).join(", ")})`);
+    console.log(`PROXIMO: verifica-interface "${file}" + qa-visual + design-critique + teste anti-vibe-code; se ok, demo-publicar ${slug} --scope balmor-s-projects`);
   },
   async "demo-similar"() {
     const { rest } = parseFlags(args);
     const slug = rest[0];
     if (!slug) return console.error("uso: demo-similar <slug>  (compara a estrutura com as demos anteriores)");
-    const specPath = resolve(ROOT, slug, "spec.json");
-    if (!existsSync(specPath)) return console.error(`spec.json nao encontrada em demos/${slug}/ (escreva a spec antes)`);
-    let sig;
-    try { sig = signature(JSON.parse(readFileSync(specPath, "utf8"))); }
-    catch (e) { return console.error("spec invalida:", e.message); }
-    let worst = { slug: null, score: 0 };
-    for (const d of readdirSync(ROOT, { withFileTypes: true })) {
-      if (!d.isDirectory() || d.name === slug) continue;
-      const sp = resolve(ROOT, d.name, "spec.json");
-      if (!existsSync(sp)) continue;
-      try {
-        const sc = similarity(sig, signature(JSON.parse(readFileSync(sp, "utf8"))));
-        if (sc > worst.score) worst = { slug: d.name, score: sc };
-      } catch {}
-    }
-    const pct = Math.round(worst.score * 100);
-    if (worst.score >= 0.75) {
-      console.log(`MUITO PARECIDA com "${worst.slug}" (${pct}% de estrutura igual).`);
-      console.log("REGENERE a spec com variacao real: troque a variante do hero, MUDE a ordem das secoes, troque o type_system, e/ou adicione-remova secoes (testimonial, steps, feature, faq, banner). Cada lead = espinha diferente.");
+    const a = analyzeVariety(slug);
+    if (a.error) return console.error(a.error);
+    for (const w of a.warns) console.log(`AVISO: ${w}`);
+    if (a.neverUsed.length) console.log(`Secoes que voce AINDA NAO usou em nenhuma demo (fonte de variedade): ${a.neverUsed.slice(0, 10).join(", ")}`);
+    if (a.blocks.length) {
+      console.log(`\nESTRUTURA REPETIDA — nao siga assim:`);
+      for (const b of a.blocks) console.log(`  - ${b}`);
+      console.log(`\nREGENERE a spec com variacao REAL: troque a variante do hero, MUDE a ordem, e inclua 1-2 secoes que nunca usou (lista acima). Cada lead = espinha diferente.`);
       process.exit(1);
     }
-    console.log(`OK — estrutura suficientemente diferente. Mais parecida: "${worst.slug || "nenhuma"}" (${pct}%). Pode seguir.`);
+    console.log(`OK — estrutura suficientemente diferente. Mais parecida: "${a.worst.slug || "nenhuma"}" (${a.worst.pct}%). Pode seguir.`);
   },
   async "demo-data"() {
     const { flags, rest } = parseFlags(args);
