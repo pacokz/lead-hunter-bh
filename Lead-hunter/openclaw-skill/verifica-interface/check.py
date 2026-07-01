@@ -52,10 +52,16 @@ CHECK_JS = r"""
   out.lowContrast=[...new Set(low)].slice(0,5);
   // CTA (botao) sem link real
   out.badCta=[...document.querySelectorAll('a.btn')].filter(a=>{const h=a.getAttribute('href');return !h||h==='#'||(h||'').startsWith('javascript');}).length;
-  // texto CORTADO dentro do proprio container (overflow escondido em heading/botao)
+  // texto CORTADO dentro do proprio container — mede o TEXTO real via Range
+  // (scrollWidth engana: pseudo-elementos animados tipo shimmer inflam o valor)
   const clipped=[];
   for(const el of document.querySelectorAll('h1,h2,h3,.btn,.brand,.chip,.hl')){
-    if(el.scrollWidth - el.clientWidth > 6 && getComputedStyle(el).overflowX!=='visible') clipped.push((el.textContent||'').trim().slice(0,28));
+    if(!(el.textContent||'').trim() || getComputedStyle(el).overflowX==='visible') continue;
+    try{
+      const rg=document.createRange(); rg.selectNodeContents(el);
+      const tw=rg.getBoundingClientRect().width;
+      if(tw - el.clientWidth > 6) clipped.push((el.textContent||'').trim().slice(0,28));
+    }catch(e){}
   }
   out.clipped=[...new Set(clipped)].slice(0,5);
   // alvo de toque pequeno demais (mobile): botao/link de acao com menos de 40px de altura
