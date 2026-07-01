@@ -31,6 +31,15 @@ export default function CampaignsPage() {
     },
   });
 
+  const process = useMutation({
+    mutationFn: () => postJSON<{ audited: number; scored: number }>("/pipeline/run"),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["campaigns"] });
+      qc.invalidateQueries({ queryKey: ["ranked"] });
+      qc.invalidateQueries({ queryKey: ["stats"] });
+    },
+  });
+
   return (
     <div>
       <h1 className="text-2xl font-bold text-slate-900">Campanhas</h1>
@@ -67,7 +76,28 @@ export default function CampaignsPage() {
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-5">
-          <div className="mb-4 text-sm font-semibold text-slate-700">Campanhas existentes</div>
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <span className="text-sm font-semibold text-slate-700">Campanhas existentes</span>
+            <button
+              onClick={() => process.mutate()}
+              disabled={process.isPending}
+              className="rounded-lg border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+            >
+              {process.isPending ? "Processando…" : "Processar agora"}
+            </button>
+          </div>
+          <p className="mb-3 text-xs text-slate-400">
+            Audita + pontua os lugares coletados (sem custo de API Google). É o que faz os
+            leads aparecerem na tela de Leads.
+          </p>
+          {process.data && (
+            <p className="mb-3 rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-700">
+              {process.data.audited} auditados · {process.data.scored} pontuados. Veja em Leads.
+            </p>
+          )}
+          {process.error && (
+            <p className="mb-3 text-xs text-red-600">{String(process.error)}</p>
+          )}
           <div className="space-y-2">
             {(data || []).length === 0 && <p className="text-sm text-slate-400">Nenhuma campanha ainda.</p>}
             {(data || []).map((c) => (

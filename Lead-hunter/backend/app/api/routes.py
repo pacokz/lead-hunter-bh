@@ -244,6 +244,27 @@ def run_pending_scores(limit: int = 100, session: Session = Depends(get_session)
     return score_service.score_pending(session, limit=limit)
 
 
+@router.post("/pipeline/run")
+def run_pipeline(
+    audit_batch: int = 50,
+    max_batches: int = 10,
+    session: Session = Depends(get_session),
+):
+    """Audita os lugares coletados (em lotes) e pontua os auditados.
+
+    Sem custo de API Google — é o mesmo passo do cron diário, sob demanda.
+    Transforma "lugar coletado" em "lead pontuado" (que aparece na tela de Leads).
+    """
+    audited = 0
+    for _ in range(max(1, max_batches)):
+        done = audit_service.audit_pending(session, limit=audit_batch)
+        audited += len(done)
+        if len(done) < audit_batch:
+            break
+    scored = score_service.score_pending(session, limit=1000)
+    return {"audited": audited, "scored": len(scored)}
+
+
 # ---- Interações + Follow-ups -----------------------------------------------
 
 def _require_place(session: Session, place_id: str) -> Place:
