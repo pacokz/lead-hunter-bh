@@ -52,6 +52,17 @@ CHECK_JS = r"""
   out.lowContrast=[...new Set(low)].slice(0,5);
   // CTA (botao) sem link real
   out.badCta=[...document.querySelectorAll('a.btn')].filter(a=>{const h=a.getAttribute('href');return !h||h==='#'||(h||'').startsWith('javascript');}).length;
+  // texto CORTADO dentro do proprio container (overflow escondido em heading/botao)
+  const clipped=[];
+  for(const el of document.querySelectorAll('h1,h2,h3,.btn,.brand,.chip,.hl')){
+    if(el.scrollWidth - el.clientWidth > 6 && getComputedStyle(el).overflowX!=='visible') clipped.push((el.textContent||'').trim().slice(0,28));
+  }
+  out.clipped=[...new Set(clipped)].slice(0,5);
+  // alvo de toque pequeno demais (mobile): botao/link de acao com menos de 40px de altura
+  out.smallTargets=0;
+  if(window.innerWidth<500){
+    out.smallTargets=[...document.querySelectorAll('a.btn,button,.wfloat')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&r.height<40;}).length;
+  }
   // SOBREPOSICAO suspeita entre textos/botoes/cards (camada visual) — pega "card em cima de texto"
   const vis=(e)=>{const s=getComputedStyle(e);if(s.visibility==='hidden'||s.display==='none'||parseFloat(s.opacity)<0.1)return false;const r=e.getBoundingClientRect();return r.width>2&&r.height>2;};
   const fx=(e)=>{let p=e;while(p&&p!==document.body){if(getComputedStyle(p).position==='fixed')return true;p=p.parentElement;}return false;};
@@ -66,7 +77,7 @@ SCROLL_JS = "()=>new Promise(r=>{let y=0;const t=setInterval(()=>{window.scrollT
 
 with sync_playwright() as p:
     b = p.chromium.launch(headless=True)
-    for vp_name, w, h in [("desktop", 1280, 900), ("mobile", 390, 844)]:
+    for vp_name, w, h in [("desktop", 1280, 900), ("mobile", 390, 844), ("tablet", 768, 1024), ("wide", 1920, 1080)]:
         pg = b.new_page(viewport={"width": w, "height": h})
         errs = []
         pg.on("console", lambda m, e=errs: e.append(m.text) if m.type == "error" else None)
@@ -95,6 +106,10 @@ with sync_playwright() as p:
                 add("MEDIA", vp_name, f"{r['badCta']} botao CTA sem link real (href '#' ou vazio)")
             for o in r.get("overlaps", []):
                 add("ALTA", vp_name, f"elementos SOBREPOSTOS (um em cima do outro): {o}")
+            for t in r.get("clipped", []):
+                add("MEDIA", vp_name, f"texto CORTADO dentro do container: '{t}'")
+            if r.get("smallTargets"):
+                add("MEDIA", vp_name, f"{r['smallTargets']} botao(oes) com alvo de toque < 40px de altura no celular")
             for e in errs[:5]:
                 add("MEDIA", vp_name, f"erro de JavaScript no console: {e[:140]}")
         except Exception as ex:

@@ -23,8 +23,16 @@ escreva a spec. Cada lead = decisões diferentes = site diferente.
   `grotesk-swiss`, `grotesk-bold`, `mono-industrial`, `rounded-warm`
 - `palette`: `{ "brand": "#hex" }` (cor REAL da marca do lead). Opcional: `deep`, `bg`,
   `ink`, `surface`, `line`, `mode:"dark"`. Se só der `brand`, o resto é derivado.
-- `animations`: subconjunto de `["aurora","textgen","shimmer","parallax"]`.
-  (reveal no scroll, contadores, ticker e hover já são automáticos.)
+- `animations`: subconjunto de `["aurora","textgen","shimmer","parallax","gradient","spotlight","tilt","beam","progress","float"]`.
+  (reveal no scroll, contadores, ticker, hover e o slider do before/after já são automáticos.)
+  - `gradient` — brilho de gradiente animado no H1 (ignorado se `textgen` também estiver ligado)
+  - `spotlight` — luz que segue o mouse nos cards/bento (estilo 21st.dev)
+  - `tilt` — inclinação 3D sutil nos cards ao passar o mouse
+  - `beam` — borda animada girando no CTA (band/split)
+  - `progress` — barra fina de progresso de scroll no topo
+  - `float` — badges do hero flutuam devagar
+  Regra de bom gosto: escolha **2–4** animações que casem com o conceito; nunca ligue todas.
+  Tudo respeita `prefers-reduced-motion` automaticamente.
 
 ## sections — escolha, ordene e componha (a variedade vem DAQUI)
 Cada item: `{ "type", "variant", "props": {} }`. Tipos e variantes disponíveis:
@@ -40,8 +48,13 @@ Cada item: `{ "type", "variant", "props": {} }`. Tipos e variantes disponíveis:
 | `feature` | (única) | `eyebrow`, `title`, `body`, `image`, `cta?`, `reverse?` (imagem à direita) |
 | `steps` | (única) | `eyebrow`, `title`, `items:[{title, desc}]` (processo numerado "Como funciona") |
 | `stats` | (`style:"band"` ou `"plain"`) | `items:[{count?, suffix?, value?, label}]` |
-| `testimonial` | `single` · `cards` | single: `quote`, `author`, `rating?` · cards: `title`, `items:[{quote, author}]` |
-| `gallery` | `collage` · `grid` · `strip` | `eyebrow`, `title`, `images:[]`, `soft?` |
+| `testimonial` | `single` · `cards` · `marquee` | single: `quote`, `author`, `rating?` · cards/marquee: `title`, `items:[{quote, author}]` (marquee = fileira infinita que corre, pausa no hover) |
+| `gallery` | `collage` · `grid` · `strip` · `masonry` | `eyebrow`, `title`, `images:[]`, `soft?` |
+| `bento` | (única) | `title`, `intro?`, `items:[{kind:"image"\|"stat"\|"quote"\|"text"\|"cta", ...}]` (3–6 tiles; grid editorial estilo 21st.dev — misture 1 foto + stat + quote + texto) |
+| `beforeafter` | (única) | `before`, `after` (fotos), `beforeLabel?`, `afterLabel?`, `title`, `intro?` — slider interativo; ótimo pra estética/harmonização/odonto |
+| `team` | (única) | `title`, `intro?`, `items:[{image, name, role}]` |
+| `logos` | (única) | `title?` (ex: "Convênios aceitos"), `items:[]` (chips de texto: selos, convênios, associações) |
+| `highlights` | (única) | `items:[{icon, label}]` — faixa fina de sinais de confiança (ex: "Estacionamento", "Emergência 24h") |
 | `faq` | (única) | `eyebrow`, `title`, `items:[{q, a}]` (accordion nativo) |
 | `banner` | (única) | `text` (faixa fina colorida), `cta?` |
 | `cta` | `band` · `fullbleed` · `split` | `eyebrow`, `title`, `sub`, `cta`, `image?` (fullbleed) |
@@ -63,8 +76,13 @@ Ver `demos/fialho-odontologia/spec.json` no repo — é um exemplo real e válid
 ticker, manifesto, services zigzag, stats band, gallery collage, cta band, contact, footer).
 
 ## Fluxo
-1. `demo-data <id> --site <url>` → pega meta + fotos + cor.
-2. Escreva a spec (este formato) num arquivo `demos/<slug>/spec.json`.
-3. `demo-render demos/<slug>/spec.json` → gera o `index.html`.
-4. `verifica-interface` (gate) + `design-critique` → corrija até limpo.
-5. `demo-publicar <slug> --scope balmor-s-projects` (o gate barra bug [ALTA]).
+1. `demo-data <id> --site <url>` → pega meta + fotos + cor (MATERIAIS BRUTOS, não confirmados).
+2. **BRIEF antes da spec** — cure as fotos, confirme a cor REAL pelo logo, **pesquise referências**
+   (1+ do nicho e 1+ de fora do nicho que casa com a direção de arte) e escreva
+   `demos/<slug>/BRIEF.md`. **O `demo-render` recusa renderizar sem o BRIEF.md.**
+3. Escreva a spec (este formato) num arquivo `demos/<slug>/spec.json`.
+4. `demo-similar <slug>` → garante estrutura diferente das demos anteriores.
+5. `demo-render demos/<slug>/spec.json` → gera o `index.html`.
+6. `verifica-interface` (gate, 4 viewports) + `qa-visual` + `design-critique` + checklist da skill
+   `web-design-guidelines` → corrija até limpo E bonito.
+7. `demo-publicar <slug> --scope balmor-s-projects` (o gate barra bug [ALTA]).

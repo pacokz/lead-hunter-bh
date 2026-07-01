@@ -1,0 +1,29 @@
+{
+  "meta": {
+    "nome": "Clinica Teste Pro",
+    "slug": "_teste-agente-pro",
+    "bairro": "Savassi",
+    "phone": "(31) 99999-8888",
+    "descricao": "Demo de teste das secoes novas"
+  },
+  "art_direction": {
+    "concept": "teste tecnico de todas as secoes e animacoes novas",
+    "type_system": "grotesk-swiss",
+    "palette": { "brand": "#5A6B4F" },
+    "animations": ["gradient", "spotlight", "tilt", "beam", "progress", "float", "shimmer"]
+  },
+  "sections": [
+    { "type": "header", "props": { "sub": "Odontologia", "cta": "Agendar" } },
+    { "type": "hero", "variant": "split", "props": { "eyebrow": "Savassi · BH", "headline": "Sorrisos com padrão de excelência", "sub": "Atendimento humanizado com tecnologia de ponta no coração da Savassi.", "cta": "Agendar avaliação", "rating": "5.0", "reviews": 241, "image": "img/foto-1.jpg" } },
+    { "type": "highlights", "props": { "items": [ { "icon": "🅿️", "label": "Estacionamento no local" }, { "icon": "🕗", "label": "Emergência 24h" }, { "icon": "💳", "label": "Parcelamento em 12x" } ] } },
+    { "type": "bento", "props": { "title": "Por que escolher a gente", "items": [ { "kind": "image", "image": "img/foto-2.jpg" }, { "kind": "stat", "count": 15, "suffix": "+", "label": "anos de experiência" }, { "kind": "quote", "quote": "Melhor dentista de BH, atendimento impecável.", "author": "Paciente no Google" }, { "kind": "text", "icon": "🦷", "title": "Tecnologia digital", "desc": "Escaneamento intraoral e planejamento 3D." }, { "kind": "stat", "count": 5.0, "label": "nota no Google" }, { "kind": "cta", "title": "Sua avaliação a um clique", "cta": "Agendar agora" } ] } },
+    { "type": "beforeafter", "props": { "eyebrow": "Resultados", "title": "Antes e depois reais", "before": "img/foto-2.jpg", "after": "img/foto-3.jpg" } },
+    { "type": "team", "props": { "eyebrow": "Equipe", "title": "Quem cuida de você", "items": [ { "image": "img/foto-1.jpg", "name": "Dra. Ana Teste", "role": "Ortodontia" }, { "image": "img/foto-2.jpg", "name": "Dr. Bruno Teste", "role": "Implantes" }, { "image": "img/foto-3.jpg", "name": "Dra. Carla Teste", "role": "Estética" } ] } },
+    { "type": "testimonial", "variant": "marquee", "props": { "title": "O que dizem sobre nós", "items": [ { "quote": "Atendimento nota dez, resolveram minha dor no mesmo dia.", "author": "Marcos P." }, { "quote": "Consultório lindo e equipe super atenciosa.", "author": "Juliana R." }, { "quote": "Fiz clareamento e amei o resultado.", "author": "Fernanda L." }, { "quote": "Pontualidade e cuidado do início ao fim.", "author": "Ricardo S." } ] } },
+    { "type": "gallery", "variant": "masonry", "props": { "eyebrow": "Estrutura", "title": "Nosso espaço", "images": ["img/foto-1.jpg", "img/foto-2.jpg", "img/foto-3.jpg", "img/foto-1.jpg", "img/foto-2.jpg", "img/foto-3.jpg"] } },
+    { "type": "logos", "props": { "title": "Convênios aceitos", "items": ["Amil Dental", "Bradesco Dental", "SulAmérica", "Unimed Odonto", "Particular"] } },
+    { "type": "cta", "variant": "band", "props": { "title": "Agende sua avaliação hoje", "sub": "Resposta rápida pelo WhatsApp", "cta": "Chamar no WhatsApp" } },
+    { "type": "contact", "props": { "eyebrow": "Visite", "title": "Venha nos conhecer", "address": "Rua Teste, 123 — Savassi, Belo Horizonte", "phone": "(31) 99999-8888" } },
+    { "type": "footer", "props": { "address": "Rua Teste, 123 — Savassi", "phone": "(31) 99999-8888" } }
+  ]
+}

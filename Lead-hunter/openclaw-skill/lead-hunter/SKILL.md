@@ -10,19 +10,21 @@ A fábrica de prospecção roda num backend FastAPI em `http://localhost:8000` (
 O **banco é a fonte da verdade**. **NUNCA invente dados** — se um comando falhar ou o
 backend estiver fora do ar, avise o Samuel.
 
-Todos os comandos são executados via Node:
+Todos os comandos são executados via Node, a partir da RAIZ do workspace (caminho relativo):
 
 ```
-node "C:\01-hermes\Lead-hunter\openclaw-skill\lead-hunter\lh.mjs" <comando> [args]
+node skills/lead-hunter/lh.mjs <comando> [args]
 ```
+
+(No Windows do Samuel o caminho absoluto é `C:\01-hermes\Lead-hunter\openclaw-skill\lead-hunter\lh.mjs`.)
 
 ## Comandos
 - `status` → visão geral (empresas, sem site, sites ruins, prioritários, uso da API, faixas)
 - `leads [N]` → top N leads ranqueados por score (default 15) — mostra `id=` de cada um
 - `lead <id>` → contexto completo de um lead (Google + auditoria + score)
 - `draft <id>` → gera rascunho de abordagem (WhatsApp). **NÃO envia** — o Samuel envia.
-- `demo-data <id> --site <url>` → entrega os MATERIAIS (dados reais + fotos baixadas + cor da marca) pra a Criadora (Nobara) **escrever a SPEC**.
-- `demo-render <spec.json>` → renderiza o site a partir da **SPEC** que a Nobara escreveu (formato em `SPEC.md`). É o caminho principal: a Nobara é diretora criativa (escreve a spec), o código monta o HTML.
+- `demo-data <id> --site <url>` → entrega os MATERIAIS BRUTOS (dados reais + fotos baixadas + cor detectada) pra a Criadora (Nobara). Ela **cura** (fotos, cor real pelo logo), **pesquisa referências** e escreve `demos/<slug>/BRIEF.md` ANTES da spec.
+- `demo-render <spec.json>` → renderiza o site a partir da **SPEC** que a Nobara escreveu (formato em `SPEC.md`). É o caminho principal: a Nobara é diretora criativa (escreve a spec), o código monta o HTML. **GATE: recusa renderizar sem `demos/<slug>/BRIEF.md`** (materiais confirmados + referências) — `--force` pula, não recomendado.
 - `demo-similar <slug>` → compara a estrutura da demo com as anteriores e avisa se ficou MUITO PARECIDA (>75%) — pra não virar molde. Exit 1 se parecida demais.
 - `demo <id> --site <url do site atual>` → (FALLBACK) gera uma PRÉVIA de site via template. Sistema PARAMETRIZADO (varia por nicho): `--theme boutique|warm|bold|classic` (par de fontes + clima) e `--anim aurora,textgen,marquee,parallax,hoverzoom,shimmer` (escolha as animações). Sem flags, usa o tema/animações padrão do segmento. Baixa as fotos reais do site (`--site`); lead sem site nenhum omite `--site`. Outros overrides: `--accent #hex` (cor da marca real do lead), `--accent2 #hex`, `--headline`, `--sobre`, `--segmento`. Salva em `C:\01-hermes\Lead-hunter\demos\<slug>\`.
 - `demo-publicar <slug> --scope balmor-s-projects` → publica a prévia num link AO VIVO na Vercel (ex: `fialho-odontologia.vercel.app`) e devolve a URL.

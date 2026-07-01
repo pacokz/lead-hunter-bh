@@ -204,7 +204,7 @@ async function api(method, path, body) {
   } catch (e) {
     console.error(
       `SEM CONEXAO com o backend (${BASE}). Ele esta rodando? ` +
-        `(cd C:\\01-hermes\\Lead-hunter && docker compose up -d)\n${e.message}`
+        `(na VPS: docker restart lead-hunter-backend | no Windows: cd C:\\01-hermes\\Lead-hunter && docker compose up -d)\n${e.message}`
     );
     process.exit(2);
   }
@@ -254,14 +254,25 @@ const run = {
     console.log(d.text);
   },
   async "demo-render"() {
-    const { rest } = parseFlags(args);
-    if (!rest[0]) return console.error("uso: demo-render <arquivo-spec.json>  (renderiza o site a partir da SPEC que voce escreveu)");
+    const { flags, rest } = parseFlags(args);
+    if (!rest[0]) return console.error("uso: demo-render <arquivo-spec.json> [--force]  (renderiza o site a partir da SPEC que voce escreveu)");
     let spec;
     try { spec = JSON.parse(readFileSync(rest[0], "utf8")); }
     catch (e) { console.error("spec invalida (JSON):", e.message); process.exit(1); }
     const slug = (spec.meta && (spec.meta.slug || slugify(spec.meta.nome))) || "demo";
     const dir = resolve(ROOT, slug);
     mkdirSync(dir, { recursive: true });
+    // GATE MATERIAIS-PRIMEIRO: sem BRIEF.md (cor real do logo + fotos curadas + referencias) nao renderiza.
+    // Criar as cegas = retrabalho garantido (licao da demo da Dra. Aline). --force pula (NAO recomendado).
+    if (!flags.force && !existsSync(resolve(dir, "BRIEF.md"))) {
+      console.error(`RENDER BLOQUEADO: falta demos/${slug}/BRIEF.md (o brief vem ANTES da spec).`);
+      console.error("Escreva o BRIEF.md com: (1) COR REAL da marca confirmada olhando o LOGO (nao a cor auto-detectada);");
+      console.error("(2) FOTOS CURADAS (a lista das que voce olhou e aprovou, e o que descartou);");
+      console.error("(3) REFERENCIAS pesquisadas AGORA (minimo 2: uma do nicho + uma de fora do nicho que casa com a direcao de arte), com o que voce vai aproveitar de cada;");
+      console.error("(4) CONCEITO em 1 linha + type_system escolhido.");
+      console.error("Se o Samuel mandou assets do lead (Instagram), inclua no brief. So renderize com material real na mao. (--force pula o gate.)");
+      process.exit(1);
+    }
     const file = resolve(dir, "index.html");
     writeFileSync(file, renderSpec(spec), "utf8");
     const nSec = (spec.sections || []).length;
@@ -321,15 +332,21 @@ const run = {
       slug, pasta: dir, nome: p.name, segmento: p.category || "(inferir pelo nome)",
       bairro: bairro(p.address), nota: p.rating, avaliacoes: p.reviews_count,
       endereco: p.address, telefone: p.phone, whatsapp: waLink(p.phone),
-      cor_marca: cor || "(sem site/cor — escolha pela referencia do nicho)",
+      cor_detectada: cor || "(nenhuma cor detectada)",
       cor_profunda: cor ? darken(cor, 0.45) : null,
-      fotos: fotos.length ? fotos : "(lead sem foto utilizavel — gere com image-generation)",
+      fotos: fotos.length ? fotos : "(lead sem foto utilizavel — gere com image-generation ou peca assets do Instagram ao Samuel)",
       site_usado: site || "(nenhum site encontrado — confirme manualmente antes de assumir 'sem site')",
-      arquivo_pra_criar: resolve(dir, "index.html"),
+      brief_pra_escrever: resolve(dir, "BRIEF.md"),
+      spec_pra_escrever: resolve(dir, "spec.json"),
     };
-    console.log("\nMATERIAIS PRA CRIAR A DEMO DO ZERO:\n");
+    console.log("\nMATERIAIS BRUTOS DA DEMO (ainda NAO confirmados):\n");
     console.log(JSON.stringify(out, null, 2));
-    console.log(`\nPROXIMO PASSO: escreva o index.html do ZERO (skill frontend-design + referencias/<nicho>.md), use as fotos reais (caminho relativo: img/...), a cor da marca e a prova social do Google. Depois rode: verifica-interface, design-critique e demo-publicar ${slug} --scope balmor-s-projects.`);
+    console.log(`\nATENCAO: a cor_detectada e um PALPITE do codigo — confirme a cor REAL olhando o LOGO do lead antes de usar.`);
+    console.log(`PROXIMO PASSO (obrigatorio, nessa ordem):`);
+    console.log(`  1. CURE as fotos (olhe cada uma; descarte logo/icone/stock) e confirme a cor real pelo logo.`);
+    console.log(`  2. PESQUISE referencias AGORA (WebSearch): 1+ do nicho e 1+ de FORA do nicho que casa com a direcao de arte.`);
+    console.log(`  3. Escreva demos/${slug}/BRIEF.md (cor confirmada, fotos curadas, referencias, conceito) — o demo-render EXIGE.`);
+    console.log(`  4. Escreva a spec (SPEC.md) -> demo-render -> demo-similar -> QA -> demo-publicar ${slug} --scope balmor-s-projects.`);
   },
   async demo() {
     const { flags, rest } = parseFlags(args);
