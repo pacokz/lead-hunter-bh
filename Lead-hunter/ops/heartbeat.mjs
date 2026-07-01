@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // Fase 8 — heartbeat: checa gateway + backend + banco; avisa no #melhorias SÓ se algo cair.
+// VPS: gateway/backend por TCP; banco pelo /health/db do backend (Supabase, sem container local).
 import net from "net";
-import { spawnSync } from "child_process";
 import { postDiscord } from "./lib-discord.mjs";
 
 function tcpUp(port, host = "localhost", timeout = 4000) {
@@ -15,17 +15,25 @@ function tcpUp(port, host = "localhost", timeout = 4000) {
   });
 }
 
+async function dbUp() {
+  try {
+    const r = await fetch("http://localhost:8000/health/db", { signal: AbortSignal.timeout(5000) });
+    const j = await r.json();
+    return j.database === "connected";
+  } catch { return false; }
+}
+
 const gw = await tcpUp(18789);
 const be = await tcpUp(8000);
-const db = spawnSync("docker", ["exec", "lead-hunter-db", "pg_isready", "-U", "lead"], { encoding: "utf8" }).status === 0;
+const db = be ? await dbUp() : false; // sem backend não dá pra checar o banco
 
 const down = [];
 if (!gw) down.push("Gateway OpenClaw (:18789) — agentes offline");
 if (!be) down.push("Backend (:8000) — comandos de lead offline");
-if (!db) down.push("Banco lead-hunter-db");
+if (!db) down.push("Banco (Supabase) — sem conexão");
 
 if (down.length) {
-  await postDiscord("🚨 **ALERTA — serviço fora do ar:**\n- " + down.join("\n- ") + "\n\nProvável: Docker Desktop fechado ou o gateway caiu.", "Heartbeat");
+  await postDiscord("🚨 **ALERTA — serviço fora do ar:**\n- " + down.join("\n- ") + "\n\nProvável: um serviço da VPS caiu — veja `systemctl status openclaw` / `docker compose ps`.", "Heartbeat");
   console.log("ALERTA:", down.join(" | "));
 } else {
   console.log("heartbeat ok — gateway, backend e banco no ar.");
