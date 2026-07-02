@@ -49,14 +49,19 @@ A demo nasce da **rota criativa** (NÃO do template) — é isso que garante que
 2. **Nanami** pesquisa referências AMPLAS (WebSearch, mín. 4, cross-nicho — não por nicho) e
    escreve `demos/<slug>/BRIEF.md` seguindo `agents/diretor-de-arte/BRIEF-TEMPLATE.md`.
    **Sem BRIEF, o render é barrado.**
-3. **Nobara** escreve `demos/<slug>/spec.json` FIEL ao BRIEF e roda
-   `demo-render demos/<slug>/spec.json` — que EXIGE o BRIEF e BARRA esqueleto repetido.
+3. **Nobara** escreve `demos/<slug>/index.html` **DO ZERO** (skill `frontend-design`),
+   reimplementando as referências do BRIEF — **estrutura, hero, animações, tipografia e
+   composição PRÓPRIAS**. É **PROIBIDO** usar `render.mjs`/`demo-render` (gera site templateado).
+   Antes de começar, LÊ `demos/_repetition-book.md` e **não repete nenhum padrão** de lá;
+   ao terminar, **anota** o que usou (hero, layout, animações, tipografia, grid, tratamento).
 4. Resuma pro Samuel (negócio, referências usadas, link do arquivo). Ele revisa/aprova.
-5. `demo-publicar <slug> --scope balmor-s-projects` — sobe ao vivo e devolve o link.
+5. `demo-publicar <slug> --scope balmor-s-projects` — roda **QA + GATE VISUAL** (reprova site
+   templateado ou parecido demais com anterior) e só então sobe ao vivo e devolve o link.
 6. Entregue o link pro Samuel. **Ele é quem manda pro lead** — você nunca envia.
 
-> O comando `demo` (template) é **FALLBACK** só quando não há material nenhum (lead sem site
-> e sem fotos, ou urgência) — ele gera 1 esqueleto parametrizado, por isso NÃO é a rota padrão.
+> **`render.mjs` / `demo` / `demo-render` são FALLBACK de emergência** (lead 100% sem material)
+> — geram esqueleto parametrizado e o **gate visual REPROVA** pra publicação. A rota padrão é
+> a Nobara escrevendo o site à mão a partir das referências. Nunca dois sites com o mesmo DNA.
 
 ## Regras (alinhadas com o SOUL)
 - **Outreach é MANUAL:** `draft` e `demo` só PREPARAM; quem envia/manda o link é o Samuel.

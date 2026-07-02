@@ -461,6 +461,15 @@ const run = {
         process.exit(1);
       }
       console.log("QA: sem bug bloqueante ✓");
+      // GATE VISUAL — nao publica site templateado (render.mjs) nem parecido demais com anterior
+      const vg = spawnSync("node", [resolve(dirname(fileURLToPath(import.meta.url)), "visual-gate.mjs"), slug], { encoding: "utf8" });
+      if (vg.status === 1) {
+        console.error("PUBLICACAO BLOQUEADA PELO GATE VISUAL:\n");
+        console.error((vg.stdout || "") + (vg.stderr || ""));
+        console.error("Refaca o site do ZERO, visualmente diferente do anterior. (--force ignora, NAO recomendado.)");
+        process.exit(1);
+      }
+      console.log((vg.stdout || "").trim());
     }
     const scope = flags.scope || process.env.VERCEL_SCOPE;
     const vargs = ["deploy", "--prod", "--yes"];
