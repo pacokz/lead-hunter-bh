@@ -464,14 +464,33 @@ def lead_context(place_id: str, session: Session = Depends(get_session)):
 
 @router.get("/leads/ranked", response_model=list[RankedLeadOut])
 def ranked_leads(limit: int = 200, session: Session = Depends(get_session)):
+    # 1 linha por lead com contagem/última data de contato registrado
+    contact_sq = (
+        select(
+            Interaction.place_id.label("place_id"),
+            func.count().label("contacts"),
+            func.max(Interaction.created_at).label("last_contact_at"),
+        )
+        .group_by(Interaction.place_id)
+        .subquery()
+    )
     rows = session.execute(
-        select(Place, LeadScore.score, LeadScore.band)
+        select(
+            Place,
+            LeadScore.score,
+            LeadScore.band,
+            contact_sq.c.contacts,
+            contact_sq.c.last_contact_at,
+            CommercialPipeline.stage,
+        )
         .join(LeadScore, LeadScore.place_id == Place.place_id)
+        .outerjoin(contact_sq, contact_sq.c.place_id == Place.place_id)
+        .outerjoin(CommercialPipeline, CommercialPipeline.place_id == Place.place_id)
         .order_by(LeadScore.score.desc())
         .limit(limit)
     ).all()
     out = []
-    for place, score, band in rows:
+    for place, score, band, contacts, last_contact_at, stage in rows:
         site_class = session.scalar(
             select(SiteAudit.site_class)
             .where(SiteAudit.place_id == place.place_id)
@@ -489,6 +508,9 @@ def ranked_leads(limit: int = 200, session: Session = Depends(get_session)):
                 band=band.value,
                 phone=place.phone,
                 instagram_handle=place.instagram_handle,
+                contacted=bool(contacts),
+                last_contact_at=last_contact_at,
+                stage=stage.value if stage else None,
             )
         )
     return out

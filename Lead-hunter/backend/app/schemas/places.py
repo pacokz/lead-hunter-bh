@@ -127,6 +127,9 @@ class RankedLeadOut(BaseModel):
     band: str
     phone: str | None
     instagram_handle: str | None
+    contacted: bool = False
+    last_contact_at: datetime | None = None
+    stage: str | None = None
 
 
 class CategoryCreate(BaseModel):

@@ -62,7 +62,12 @@ export function FollowUpsPanel({ placeId }: { placeId: string }) {
   const [content, setContent] = useState("");
   const logIt = useMutation({
     mutationFn: () => postJSON(`/leads/${placeId}/interactions`, { channel, direction, content: content || null }),
-    onSuccess: () => { setContent(""); qc.invalidateQueries({ queryKey: ikey }); },
+    onSuccess: () => {
+      setContent("");
+      qc.invalidateQueries({ queryKey: ikey });
+      // faz o lead subir pra aba "Contatados" na tela de Leads
+      qc.invalidateQueries({ queryKey: ["ranked"] });
+    },
   });
 
   const inputCls = "rounded-lg border border-slate-300 px-2 py-1.5 text-sm";

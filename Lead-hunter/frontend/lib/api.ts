@@ -42,6 +42,9 @@ export type RankedLead = {
   band: string;
   phone: string | null;
   instagram_handle: string | null;
+  contacted: boolean;
+  last_contact_at: string | null;
+  stage: string | null;
 };
 
 export type LeadContext = {
