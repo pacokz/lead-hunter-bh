@@ -8,6 +8,7 @@ import { gerarDemo, slugify, waLink, bairro } from "./demo.mjs";
 import { renderSpec } from "./render.mjs";
 const BASE = process.env.LH_API || "http://localhost:8000";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "demos");
+const PY = process.platform === "win32" ? "python" : "python3"; // VPS Linux so tem python3
 
 // parser simples de flags --chave valor / --chave=valor
 function parseFlags(arr) {
@@ -187,7 +188,7 @@ async function scrapeImages(siteUrl, destDir, max = 8) {
   // 1) CAMINHO PRINCIPAL: scraper headless (pega fotos lazy-load de Wix/JS que o fetch perde)
   try {
     const py = resolve(dirname(fileURLToPath(import.meta.url)), "scrape-images.py");
-    spawnSync("python", [py, siteUrl, destDir, String(max)], { encoding: "utf8", timeout: 90000 });
+    spawnSync(PY, [py, siteUrl, destDir, String(max)], { encoding: "utf8", timeout: 90000 });
   } catch {}
   const head = readdirSync(resolve(destDir, "img"))
     .filter((f) => /^foto-\d+\.jpg$/i.test(f))
@@ -453,7 +454,7 @@ const run = {
     // GATE DE QA — nao publica com bug bloqueante [ALTA] (a menos que --force)
     if (!flags.force) {
       const checker = resolve(dirname(fileURLToPath(import.meta.url)), "..", "verifica-interface", "check.py");
-      const qa = spawnSync("python", [checker, resolve(dir, "index.html")], { encoding: "utf8" });
+      const qa = spawnSync(PY, [checker, resolve(dir, "index.html")], { encoding: "utf8" });
       if (qa.status === 2) {
         console.error("PUBLICACAO BLOQUEADA PELO QA — ha bug(s) bloqueante(s) [ALTA]:\n");
         console.error((qa.stdout || "") + (qa.stderr || ""));
