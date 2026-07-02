@@ -39,11 +39,24 @@ Rode `status` (e `leads 5` se útil) e **resuma em PT-BR, direto**: quantos lead
 quais os top prioritários e o que precisa de ação (jobs com erro, leads sem abordar).
 
 ## Gerar e publicar uma demo (prévia de site)
-É a maior peça de conversão: uma prévia de site pronta pro Samuel mandar pro dono no WhatsApp.
-1. `demo <id> --site <url do site atual dele>` — gera local e baixa as fotos reais do site dele.
-2. Resuma pro Samuel (negócio, se pegou fotos, link do arquivo). Ele revisa/aprova.
-3. `demo-publicar <slug> --scope balmor-s-projects` — sobe ao vivo e devolve o link.
-4. Entregue o link pro Samuel. **Ele é quem manda pro lead** — você nunca envia.
+É a maior peça de conversão: uma prévia pronta pro Samuel mandar pro dono no WhatsApp.
+A demo nasce da **rota criativa** (NÃO do template) — é isso que garante que cada site é único.
+
+**Papéis:** o **Nanami (Diretor de Arte)** pesquisa referências e escreve o BRIEF; a
+**Nobara (Criadora)** executa (spec + render); a **Sukuna** orquestra e resume pro Samuel.
+
+1. `demo-data <id> --site <url do site atual>` — baixa fotos reais + dados + cor auto-detectada.
+2. **Nanami** pesquisa referências AMPLAS (WebSearch, mín. 4, cross-nicho — não por nicho) e
+   escreve `demos/<slug>/BRIEF.md` seguindo `agents/diretor-de-arte/BRIEF-TEMPLATE.md`.
+   **Sem BRIEF, o render é barrado.**
+3. **Nobara** escreve `demos/<slug>/spec.json` FIEL ao BRIEF e roda
+   `demo-render demos/<slug>/spec.json` — que EXIGE o BRIEF e BARRA esqueleto repetido.
+4. Resuma pro Samuel (negócio, referências usadas, link do arquivo). Ele revisa/aprova.
+5. `demo-publicar <slug> --scope balmor-s-projects` — sobe ao vivo e devolve o link.
+6. Entregue o link pro Samuel. **Ele é quem manda pro lead** — você nunca envia.
+
+> O comando `demo` (template) é **FALLBACK** só quando não há material nenhum (lead sem site
+> e sem fotos, ou urgência) — ele gera 1 esqueleto parametrizado, por isso NÃO é a rota padrão.
 
 ## Regras (alinhadas com o SOUL)
 - **Outreach é MANUAL:** `draft` e `demo` só PREPARAM; quem envia/manda o link é o Samuel.

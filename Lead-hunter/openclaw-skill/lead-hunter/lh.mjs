@@ -396,11 +396,12 @@ const run = {
     console.log("\nMATERIAIS BRUTOS DA DEMO (ainda NAO confirmados):\n");
     console.log(JSON.stringify(out, null, 2));
     console.log(`\nATENCAO: a cor_detectada e um PALPITE do codigo — confirme a cor REAL olhando o LOGO do lead antes de usar.`);
-    console.log(`PROXIMO PASSO (obrigatorio, nessa ordem):`);
+    console.log(`PROXIMO PASSO (Diretor de Arte -> Criadora):`);
     console.log(`  1. CURE as fotos (olhe cada uma; descarte logo/icone/stock) e confirme a cor real pelo logo.`);
-    console.log(`  2. PESQUISE referencias AGORA (WebSearch): 1+ do nicho e 1+ de FORA do nicho que casa com a direcao de arte.`);
-    console.log(`  3. Escreva demos/${slug}/BRIEF.md (cor confirmada, fotos curadas, referencias, conceito) — o demo-render EXIGE.`);
-    console.log(`  4. Escreva a spec (SPEC.md) -> demo-render -> demo-similar -> QA -> demo-publicar ${slug} --scope balmor-s-projects.`);
+    console.log(`  2. NANAMI: pesquise referencias AMPLAS AGORA (WebSearch, min. 4) — os melhores sites de QUALQUER nicho`);
+    console.log(`     (awwwards, land-book, recent.design). De cada uma, um ROUBO concreto com URL. Pelo menos 1 de FORA do nicho.`);
+    console.log(`  3. NANAMI: escreva demos/${slug}/BRIEF.md pelo modelo BRIEF-TEMPLATE.md (passe o checklist de aceitacao) — o demo-render EXIGE.`);
+    console.log(`  4. NOBARA: escreva a spec (SPEC.md) FIEL ao brief -> demo-render -> demo-similar -> QA -> demo-publicar ${slug} --scope balmor-s-projects.`);
   },
   async demo() {
     const { flags, rest } = parseFlags(args);
