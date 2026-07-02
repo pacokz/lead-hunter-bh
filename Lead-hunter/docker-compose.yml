@@ -34,6 +34,8 @@ services:
       - "127.0.0.1:8000:8000"
     volumes:
       - ./backend:/app
+      # Demos dos agentes (Nobara). Na VPS: DEMOS_DIR=/home/hermes/.openclaw/demos-shared (.env)
+      - ${DEMOS_DIR:-./demos}:/demos-shared:ro
 
 volumes:
   pgdata:

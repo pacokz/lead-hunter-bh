@@ -81,6 +81,7 @@ class InteractionCreate(BaseModel):
     channel: str | None = None
     direction: str | None = None  # outbound | inbound
     content: str | None = None
+    created_by: str | None = None  # operador (vem do login Cloudflare Access)
 
 
 class InteractionOut(BaseModel):
@@ -92,12 +93,14 @@ class InteractionOut(BaseModel):
     direction: str | None
     content: str | None
     created_at: datetime | None
+    created_by: str | None = None
 
 
 class FollowUpCreate(BaseModel):
     type: str = "call"  # call | mensagem
     scheduled_at: datetime | None = None
     note: str | None = None
+    created_by: str | None = None
 
 
 class FollowUpOut(BaseModel):
@@ -110,6 +113,7 @@ class FollowUpOut(BaseModel):
     note: str | None
     done: bool
     done_at: datetime | None
+    created_by: str | None = None
 
 
 class FollowUpAgendaOut(FollowUpOut):
@@ -167,6 +171,22 @@ class CrmCardOut(BaseModel):
     site_class: str | None
     phone: str | None
     instagram_handle: str | None
+    owner: str | None = None
+
+
+class DemoOut(BaseModel):
+    slug: str
+    name: str
+    bairro: str | None = None
+    status: str  # RASCUNHO | EM_QA | APROVADA | PUBLICADA
+    published_url: str | None = None
+    craft_score: float | None = None
+    publishable: bool | None = None
+    blockers: list[str] = []
+    craft_issues: list[str] = []
+    screenshots: dict[str, str] = {}
+    preview_path: str | None = None
+    updated_at: datetime | None = None
 
 
 class OutreachDraftOut(BaseModel):

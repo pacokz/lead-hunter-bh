@@ -23,7 +23,7 @@ import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { CrmStageBadge, ScoreBandBadge, SiteCategoryBadge } from "@/components/domain/badges";
 import { Rating } from "@/components/domain/rating";
-import { useCategories, useLeads, usePromoteQualified } from "@/lib/queries";
+import { useCampaigns, useLeads, useMe, usePromoteQualified } from "@/lib/queries";
 import { SCORE_BANDS, SITE_CATEGORIES } from "@/lib/domain";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -34,7 +34,8 @@ type ContactTab = "all" | "todo" | "contacted";
 
 export default function LeadsPage() {
   const leads = useLeads();
-  const categories = useCategories();
+  const campaigns = useCampaigns();
+  const me = useMe();
   const promote = usePromoteQualified();
   const { toast } = useToast();
   const router = useRouter();
@@ -47,6 +48,15 @@ export default function LeadsPage() {
   const [crmFilter, setCrmFilter] = useState(ALL);
 
   const hasFilters = search !== "" || [category, band, site, crmFilter].some((f) => f !== ALL);
+
+  // Nichos = categorias das campanhas já rodadas + categorias presentes nos
+  // leads (não a lista bruta do Google) — mesmo critério da interface antiga.
+  const niches = useMemo(() => {
+    const set = new Set<string>();
+    for (const c of campaigns.data ?? []) if (c.category) set.add(c.category);
+    for (const l of leads.data ?? []) if (l.category) set.add(l.category);
+    return [...set].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [campaigns.data, leads.data]);
 
   const base = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -91,7 +101,7 @@ export default function LeadsPage() {
             loading={promote.isPending}
             title="Move todos os leads ALTO POTENCIAL e PRIORIDADE que ainda não estão no CRM"
             onClick={async () => {
-              const res = await promote.mutateAsync();
+              const res = await promote.mutateAsync(me.data?.operator?.id ?? null);
               toast(
                 "success",
                 res.promoted > 0
@@ -131,10 +141,10 @@ export default function LeadsPage() {
           </div>
           <span className="mx-1 hidden h-5 w-px bg-line md:block" aria-hidden />
           <SlidersHorizontal className="hidden h-3.5 w-3.5 text-ink-faint md:block" aria-hidden />
-          <Select value={category} onChange={(e) => setCategory(e.target.value)} className="h-8" aria-label="Filtrar por categoria">
-            <option value={ALL}>Categoria</option>
-            {(categories.data ?? []).map((c) => (
-              <option key={c.id} value={c.name}>{c.name}</option>
+          <Select value={category} onChange={(e) => setCategory(e.target.value)} className="h-8" aria-label="Filtrar por nicho">
+            <option value={ALL}>Nicho</option>
+            {niches.map((n) => (
+              <option key={n} value={n}>{n}</option>
             ))}
           </Select>
           <Select value={band} onChange={(e) => setBand(e.target.value)} className="h-8" aria-label="Filtrar por faixa de score">

@@ -25,6 +25,11 @@ _shots = Path(settings.screenshot_dir)
 _shots.mkdir(parents=True, exist_ok=True)
 app.mount("/screenshots", StaticFiles(directory=str(_shots)), name="screenshots")
 
+# Demos dos agentes (index.html + screenshots de QA) — read-only, se o volume existir.
+_demos = Path(settings.demos_container_dir)
+if _demos.is_dir():
+    app.mount("/demos-files", StaticFiles(directory=str(_demos), html=True), name="demos")
+
 
 @app.get("/health")
 def health() -> dict:

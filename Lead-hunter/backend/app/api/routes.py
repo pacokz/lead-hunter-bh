@@ -19,6 +19,7 @@ from app.schemas.places import (
     CategoryCreate,
     CategoryOut,
     CrmCardOut,
+    DemoOut,
     FollowUpAgendaOut,
     FollowUpCreate,
     FollowUpOut,
@@ -114,8 +115,16 @@ def list_regions(session: Session = Depends(get_session)):
 
 
 @router.post("/crm/promote")
-def promote_to_crm(limit: int = 100, session: Session = Depends(get_session)):
+def promote_to_crm(limit: int = 100, by: str | None = None, session: Session = Depends(get_session)):
     ids = crm_service.promote_qualified(session, limit=limit)
+    if by and ids:
+        # quem promoveu vira o responsável inicial dos cards novos
+        for cp in session.scalars(
+            select(CommercialPipeline).where(CommercialPipeline.place_id.in_(ids))
+        ):
+            if not cp.owner:
+                cp.owner = by
+        session.commit()
     return {"promoted": len(ids), "place_ids": ids}
 
 
@@ -144,9 +153,35 @@ def crm_board(session: Session = Depends(get_session)):
                 site_class=site_class.value if site_class else None,
                 phone=place.phone,
                 instagram_handle=place.instagram_handle,
+                owner=cp.owner,
             )
         )
     return cards
+
+
+@router.post("/leads/{place_id}/crm/owner", response_model=CrmCardOut)
+def update_owner(place_id: str, owner: str, session: Session = Depends(get_session)):
+    place = session.get(Place, place_id)
+    if place is None:
+        raise HTTPException(status_code=404, detail="Lead não encontrado.")
+    cp = session.scalar(
+        select(CommercialPipeline).where(CommercialPipeline.place_id == place_id)
+    )
+    if cp is None:
+        raise HTTPException(status_code=404, detail="Lead não está no CRM.")
+    cp.owner = owner
+    session.commit()
+    return CrmCardOut(
+        place_id=place.place_id,
+        name=place.name,
+        stage=cp.stage.value,
+        score=None,
+        band=None,
+        site_class=None,
+        phone=place.phone,
+        instagram_handle=place.instagram_handle,
+        owner=cp.owner,
+    )
 
 
 @router.post("/leads/{place_id}/crm/stage", response_model=CrmCardOut)
@@ -289,7 +324,12 @@ def log_interaction(place_id: str, payload: InteractionCreate, session: Session 
         except ValueError:
             raise HTTPException(status_code=400, detail=f"Canal inválido: {payload.channel}")
     return followup_service.log_interaction(
-        session, place_id, channel=channel, direction=payload.direction, content=payload.content
+        session,
+        place_id,
+        channel=channel,
+        direction=payload.direction,
+        content=payload.content,
+        created_by=payload.created_by,
     )
 
 
@@ -302,7 +342,12 @@ def list_followups(place_id: str, session: Session = Depends(get_session)):
 def create_followup(place_id: str, payload: FollowUpCreate, session: Session = Depends(get_session)):
     _require_place(session, place_id)
     return followup_service.schedule_followup(
-        session, place_id, type=payload.type, scheduled_at=payload.scheduled_at, note=payload.note
+        session,
+        place_id,
+        type=payload.type,
+        scheduled_at=payload.scheduled_at,
+        note=payload.note,
+        created_by=payload.created_by,
     )
 
 
@@ -341,9 +386,101 @@ def upcoming_followups(limit: int = 100, session: Session = Depends(get_session)
             "note": f.note,
             "done": f.done,
             "done_at": f.done_at,
+            "created_by": f.created_by,
         }
         for f in rows
     ]
+
+
+# ---- Demos (geradas pelos agentes; fonte = pasta demos-shared montada) ------
+
+
+@router.get("/demos", response_model=list[DemoOut])
+def list_demos():
+    import json as _json
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    root = Path(settings.demos_container_dir)
+    if not root.is_dir():
+        return []
+
+    out: list[DemoOut] = []
+    for d in root.iterdir():
+        if not d.is_dir() or d.name.startswith("_") or d.name.startswith("."):
+            continue
+
+        meta: dict = {}
+        spec = d / "spec.json"
+        if spec.exists():
+            try:
+                meta = _json.loads(spec.read_text(encoding="utf-8")).get("meta") or {}
+            except Exception:  # noqa: BLE001
+                meta = {}
+
+        critique: dict | None = None
+        cpath = d / "_qa" / "critique.json"
+        if cpath.exists():
+            try:
+                critique = _json.loads(cpath.read_text(encoding="utf-8"))
+            except Exception:  # noqa: BLE001
+                critique = None
+
+        published_url = None
+        vproj = d / ".vercel" / "project.json"
+        if vproj.exists():
+            try:
+                pname = _json.loads(vproj.read_text(encoding="utf-8")).get("projectName")
+                if pname:
+                    published_url = f"https://{pname}.vercel.app"
+            except Exception:  # noqa: BLE001
+                pass
+
+        shots = {
+            vp: f"/demos-files/{d.name}/_qa/{vp}.png"
+            for vp in ("desktop", "tablet", "mobile")
+            if (d / "_qa" / f"{vp}.png").exists()
+        }
+        index = d / "index.html"
+        has_index = index.exists()
+
+        blockers = list((critique or {}).get("blockers") or [])
+        score = (critique or {}).get("score")
+        publishable = (critique or {}).get("publishable")
+        if published_url:
+            status = "PUBLICADA"
+        elif critique and not blockers and (publishable is not False) and (score is None or score >= 7):
+            status = "APROVADA"
+        elif critique:
+            status = "EM_QA"
+        else:
+            status = "RASCUNHO"
+
+        try:
+            mtime = (index if has_index else d).stat().st_mtime
+            updated_at = datetime.fromtimestamp(mtime, tz=timezone.utc)
+        except OSError:
+            updated_at = None
+
+        out.append(
+            DemoOut(
+                slug=d.name,
+                name=meta.get("nome") or d.name.replace("-", " ").title(),
+                bairro=meta.get("bairro"),
+                status=status,
+                published_url=published_url,
+                craft_score=score,
+                publishable=publishable,
+                blockers=blockers,
+                craft_issues=list((critique or {}).get("craft_issues") or []),
+                screenshots=shots,
+                preview_path=f"/demos-files/{d.name}/index.html" if has_index else None,
+                updated_at=updated_at,
+            )
+        )
+
+    out.sort(key=lambda x: (x.updated_at is not None, x.updated_at), reverse=True)
+    return out
 
 
 @router.get("/stats")

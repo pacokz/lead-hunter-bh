@@ -9,10 +9,12 @@ import type {
   CrmCard,
   CrmStage,
   DashboardStats,
+  Demo,
   FollowUp,
   FollowUpAgenda,
   Interaction,
   LeadContext,
+  Me,
   OutreachDraft,
   RankedLead,
   Region,
@@ -33,6 +35,15 @@ async function send<T>(method: "POST" | "DELETE", path: string, body?: unknown):
     headers: body !== undefined ? { "Content-Type": "application/json" } : undefined,
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json();
+}
+
+// ---------------------------------------------------------------- identidade
+
+// Rota do próprio Next (não passa pelo proxy) — lê o header do Cloudflare Access.
+export async function getMe(): Promise<Me> {
+  const r = await fetch("/api/me");
   if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
   return r.json();
 }
@@ -70,13 +81,22 @@ export const getLeadContext = (placeId: string) =>
 
 export const getCrmBoard = () => getJSON<CrmCard[]>("/crm");
 
-export const promoteQualified = () =>
-  send<{ promoted: number; place_ids: string[] }>("POST", "/crm/promote");
+export const promoteQualified = (by?: string | null) =>
+  send<{ promoted: number; place_ids: string[] }>(
+    "POST",
+    `/crm/promote${by ? `?by=${encodeURIComponent(by)}` : ""}`
+  );
 
 export const setCrmStage = (input: { placeId: string; stage: CrmStage }) =>
   send<CrmCard>(
     "POST",
     `/leads/${encodeURIComponent(input.placeId)}/crm/stage?stage=${input.stage}`
+  );
+
+export const setCrmOwner = (input: { placeId: string; owner: string }) =>
+  send<CrmCard>(
+    "POST",
+    `/leads/${encodeURIComponent(input.placeId)}/crm/owner?owner=${encodeURIComponent(input.owner)}`
   );
 
 // ---------------------------------------------------------------- outreach
@@ -99,11 +119,13 @@ export const addInteraction = (input: {
   placeId: string;
   channel: string | null;
   content: string;
+  createdBy?: string | null;
 }) =>
   send<Interaction>("POST", `/leads/${encodeURIComponent(input.placeId)}/interactions`, {
     channel: input.channel,
     direction: "outbound",
     content: input.content,
+    created_by: input.createdBy ?? null,
   });
 
 export const getUpcomingFollowUps = () =>
@@ -112,15 +134,29 @@ export const getUpcomingFollowUps = () =>
 export const getLeadFollowUps = (placeId: string) =>
   getJSON<FollowUp[]>(`/leads/${encodeURIComponent(placeId)}/follow-ups`);
 
-export const addFollowUp = (input: { placeId: string; scheduledAt: string; note: string }) =>
+export const addFollowUp = (input: {
+  placeId: string;
+  scheduledAt: string;
+  note: string;
+  createdBy?: string | null;
+}) =>
   send<FollowUp>("POST", `/leads/${encodeURIComponent(input.placeId)}/follow-ups`, {
     type: "mensagem",
     scheduled_at: input.scheduledAt,
     note: input.note,
+    created_by: input.createdBy ?? null,
   });
 
 export const completeFollowUp = (id: number) =>
   send<FollowUp>("POST", `/follow-ups/${id}/done`);
+
+// ---------------------------------------------------------------- demos
+
+export const getDemos = () => getJSON<Demo[]>("/demos");
+
+export function demoFileUrl(path: string) {
+  return `${API}${path}`;
+}
 
 // ---------------------------------------------------------------- campanhas
 

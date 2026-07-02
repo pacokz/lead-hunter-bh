@@ -43,9 +43,13 @@ import {
   useInteractions,
   useLeadContext,
   useLeadFollowUps,
+  useMe,
   usePromoteQualified,
+  useSetCrmOwner,
   useSetCrmStage,
 } from "@/lib/queries";
+import { OperatorAvatar, OperatorTag } from "@/components/domain/operator";
+import { operatorById } from "@/lib/operators";
 import { CRM_STAGE_ORDER, CRM_STAGES, SCORE_COMPONENT_LABELS } from "@/lib/domain";
 import { fmtDateTime, fmtRelative, isOverdue } from "@/lib/format";
 import type { CrmStage, LeadContext } from "@/lib/types";
@@ -432,10 +436,13 @@ function GoogleCard({ ctx }: { ctx: LeadContext }) {
 function CrmCard({ placeId }: { placeId: string }) {
   const board = useCrmBoard();
   const setStage = useSetCrmStage();
+  const setOwner = useSetCrmOwner();
   const promote = usePromoteQualified();
+  const me = useMe();
   const { toast } = useToast();
 
   const card = (board.data ?? []).find((c) => c.place_id === placeId);
+  const OWNER_OPTIONS = ["samuel", "jose"];
 
   return (
     <Card>
@@ -458,7 +465,7 @@ function CrmCard({ placeId }: { placeId: string }) {
               variant="primary"
               loading={promote.isPending}
               onClick={async () => {
-                const res = await promote.mutateAsync();
+                const res = await promote.mutateAsync(me.data?.operator?.id ?? null);
                 toast("success", `${res.promoted} lead(s) promovido(s)`);
               }}
             >
@@ -483,6 +490,40 @@ function CrmCard({ placeId }: { placeId: string }) {
               ))}
             </Select>
           </Field>
+          <div>
+            <p className="mb-1.5 text-xs font-medium text-ink-soft">Responsável</p>
+            <div className="inline-flex items-center gap-0.5 rounded-ctrl bg-line-soft p-0.5" role="radiogroup" aria-label="Responsável">
+              {OWNER_OPTIONS.map((id) => {
+                const op = operatorById(id)!;
+                const active = card.owner === id;
+                return (
+                  <button
+                    key={id}
+                    role="radio"
+                    aria-checked={active}
+                    disabled={setOwner.isPending}
+                    onClick={async () => {
+                      if (active) return;
+                      await setOwner.mutateAsync({ placeId, owner: id });
+                      toast("success", `Responsável agora é ${op.shortName}`);
+                    }}
+                    className={cn(
+                      "inline-flex h-7 items-center gap-1.5 rounded-[6px] px-2 text-xs font-medium transition-colors",
+                      active ? "bg-white text-ink shadow-card" : "text-ink-muted hover:text-ink"
+                    )}
+                  >
+                    <OperatorAvatar id={id} size="sm" />
+                    {op.shortName}
+                  </button>
+                );
+              })}
+              {card.owner && !OWNER_OPTIONS.includes(card.owner) && (
+                <span className="px-2 text-xs text-ink-muted">
+                  <OperatorTag id={card.owner} />
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </Card>
@@ -509,6 +550,7 @@ function ActivityCard({ ctx }: { ctx: LeadContext }) {
   const addInteraction = useAddInteraction();
   const addFollowUp = useAddFollowUp();
   const completeFollowUp = useCompleteFollowUp();
+  const me = useMe();
   const { toast } = useToast();
 
   const [dialog, setDialog] = useState<"interaction" | "followup" | null>(null);
@@ -601,6 +643,7 @@ function ActivityCard({ ctx }: { ctx: LeadContext }) {
                   className="absolute -left-[21.5px] top-1.5 h-2.5 w-2.5 rounded-full border-2 border-white bg-violet-300"
                 />
                 <div className="flex items-center gap-2 text-2xs text-ink-muted">
+                  {it.created_by && <OperatorAvatar id={it.created_by} size="sm" />}
                   <span className="font-semibold text-ink-soft">{channelLabel(it.channel)}</span>
                   {it.direction && <span>({it.direction === "outbound" ? "enviado" : "recebido"})</span>}
                   {it.created_at && <span>· {fmtDateTime(it.created_at)}</span>}
@@ -632,10 +675,16 @@ function ActivityCard({ ctx }: { ctx: LeadContext }) {
               placeholder="Ex.: enviei a demo, visualizou e pediu preço"
             />
           </Field>
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            {me.data?.operator && (
+              <p className="text-2xs text-ink-muted">
+                Registrando como <OperatorTag id={me.data.operator.id} />
+              </p>
+            )}
             <Button
               variant="primary"
               size="sm"
+              className="ml-auto"
               disabled={!note.trim()}
               loading={addInteraction.isPending}
               onClick={async () => {
@@ -643,6 +692,7 @@ function ActivityCard({ ctx }: { ctx: LeadContext }) {
                   placeId,
                   channel: channel || null,
                   content: note.trim(),
+                  createdBy: me.data?.operator?.id ?? null,
                 });
                 setNote("");
                 setDialog(null);
@@ -677,10 +727,16 @@ function ActivityCard({ ctx }: { ctx: LeadContext }) {
               placeholder="Ex.: cobrar resposta da proposta"
             />
           </Field>
-          <div className="flex justify-end">
+          <div className="flex items-center justify-between">
+            {me.data?.operator && (
+              <p className="text-2xs text-ink-muted">
+                Responsável: <OperatorTag id={me.data.operator.id} />
+              </p>
+            )}
             <Button
               variant="primary"
               size="sm"
+              className="ml-auto"
               disabled={!fuNote.trim()}
               loading={addFollowUp.isPending}
               onClick={async () => {
@@ -691,6 +747,7 @@ function ActivityCard({ ctx }: { ctx: LeadContext }) {
                   placeId,
                   scheduledAt: due.toISOString(),
                   note: fuNote.trim(),
+                  createdBy: me.data?.operator?.id ?? null,
                 });
                 setFuNote("");
                 setDialog(null);

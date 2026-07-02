@@ -8,21 +8,32 @@ import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { SiteCategoryBadge } from "@/components/domain/badges";
-import { useCrmBoard, usePromoteQualified, useSetCrmStage } from "@/lib/queries";
+import { OperatorAvatar } from "@/components/domain/operator";
+import { useCrmBoard, useMe, usePromoteQualified, useSetCrmStage } from "@/lib/queries";
 import { CRM_STAGE_ORDER, CRM_STAGES } from "@/lib/domain";
+import { operatorById } from "@/lib/operators";
 import { cn } from "@/lib/utils";
 import type { CrmCard, CrmStage } from "@/lib/types";
+import { Select } from "@/components/ui/input";
+
+const ALL = "__all__";
 
 export default function CrmPage() {
   const board = useCrmBoard();
   const setStage = useSetCrmStage();
   const promote = usePromoteQualified();
+  const me = useMe();
   const { toast } = useToast();
 
   const [dragged, setDragged] = useState<string | null>(null);
   const [overStage, setOverStage] = useState<CrmStage | null>(null);
+  const [ownerFilter, setOwnerFilter] = useState<string>(ALL);
 
-  const cards = board.data ?? [];
+  const cards = useMemo(
+    () =>
+      (board.data ?? []).filter((c) => ownerFilter === ALL || c.owner === ownerFilter),
+    [board.data, ownerFilter]
+  );
 
   const byStage = useMemo(() => {
     const map = new Map<CrmStage, CrmCard[]>();
@@ -50,22 +61,33 @@ export default function CrmPage() {
         title="CRM"
         description="Arraste os cards entre estágios pra acompanhar cada negociação."
         action={
-          <Button
-            variant="primary"
-            loading={promote.isPending}
-            title="Move todos os leads ALTO POTENCIAL e PRIORIDADE que ainda não estão no CRM"
-            onClick={async () => {
-              const res = await promote.mutateAsync();
-              toast(
-                "success",
-                res.promoted > 0
-                  ? `${res.promoted} lead(s) promovido(s)`
-                  : "Nenhum lead novo pra promover"
-              );
-            }}
-          >
-            Promover qualificados
-          </Button>
+          <>
+            <Select
+              value={ownerFilter}
+              onChange={(e) => setOwnerFilter(e.target.value)}
+              aria-label="Filtrar por responsável"
+            >
+              <option value={ALL}>Todos os responsáveis</option>
+              <option value="samuel">Só Samuel</option>
+              <option value="jose">Só José</option>
+            </Select>
+            <Button
+              variant="primary"
+              loading={promote.isPending}
+              title="Move todos os leads ALTO POTENCIAL e PRIORIDADE que ainda não estão no CRM"
+              onClick={async () => {
+                const res = await promote.mutateAsync(me.data?.operator?.id ?? null);
+                toast(
+                  "success",
+                  res.promoted > 0
+                    ? `${res.promoted} lead(s) promovido(s)`
+                    : "Nenhum lead novo pra promover"
+                );
+              }}
+            >
+              Promover qualificados
+            </Button>
+          </>
         }
       />
 
@@ -88,7 +110,7 @@ export default function CrmPage() {
               variant="primary"
               loading={promote.isPending}
               onClick={async () => {
-                const res = await promote.mutateAsync();
+                const res = await promote.mutateAsync(me.data?.operator?.id ?? null);
                 toast("success", `${res.promoted} lead(s) promovido(s)`);
               }}
             >
@@ -168,7 +190,7 @@ function KanbanCard({
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      aria-label={`${card.name} — ${CRM_STAGES[card.stage].label}`}
+      aria-label={`${card.name} — ${CRM_STAGES[card.stage].label}${card.owner ? `, responsável ${operatorById(card.owner)?.shortName}` : ""}`}
       className={cn(
         "group cursor-grab rounded-ctrl border border-line bg-white p-2.5 shadow-card transition-all active:cursor-grabbing",
         dragging && "rotate-1 opacity-60 shadow-pop ring-2 ring-violet-400"
@@ -202,6 +224,7 @@ function KanbanCard({
         <span className="flex items-center gap-1.5 text-ink-faint">
           {card.phone && <Phone className="h-3 w-3" aria-label="Tem telefone" />}
           {card.instagram_handle && <Instagram className="h-3 w-3" aria-label="Tem Instagram" />}
+          {card.owner && <OperatorAvatar id={card.owner} size="sm" />}
         </span>
       </div>
     </article>

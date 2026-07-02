@@ -4,6 +4,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "./api";
 
 export const qk = {
+  me: ["me"] as const,
+  demos: ["demos"] as const,
   stats: ["stats"] as const,
   backendStats: ["backend-stats"] as const,
   leads: ["leads"] as const,
@@ -20,6 +22,9 @@ export const qk = {
   regions: ["regions"] as const,
 };
 
+export const useMe = () =>
+  useQuery({ queryKey: qk.me, queryFn: api.getMe, staleTime: Infinity });
+export const useDemos = () => useQuery({ queryKey: qk.demos, queryFn: api.getDemos });
 export const useStats = () => useQuery({ queryKey: qk.stats, queryFn: api.getStats });
 export const useBackendStats = () =>
   useQuery({ queryKey: qk.backendStats, queryFn: api.getBackendStats });
@@ -62,6 +67,14 @@ export function useSetCrmStage() {
   return useMutation({
     mutationFn: api.setCrmStage,
     onSuccess: () => invalidate(qk.crm, qk.leads, qk.stats),
+  });
+}
+
+export function useSetCrmOwner() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: api.setCrmOwner,
+    onSuccess: () => invalidate(qk.crm),
   });
 }
 

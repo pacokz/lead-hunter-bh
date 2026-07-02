@@ -21,5 +21,10 @@ class Settings(BaseSettings):
     # Servido em /screenshots e persistido no host via volume ./backend:/app.
     screenshot_dir: str = "/app/data/screenshots"
 
+    # Demos geradas pelos agentes (Nobara). Na VPS o demos-shared do OpenClaw é
+    # montado read-only no container (docker-compose). Servido em /demos-files
+    # e listado em GET /demos.
+    demos_container_dir: str = "/demos-shared"
+
 
 settings = Settings()

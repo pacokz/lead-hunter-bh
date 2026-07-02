@@ -51,6 +51,7 @@ class Interaction(TimestampMixin, Base):
     direction: Mapped[str | None] = mapped_column(String(20))  # outbound | inbound
     content: Mapped[str | None] = mapped_column(Text)
     logged_by_samuel: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_by: Mapped[str | None] = mapped_column(String(120))  # operador (login Cloudflare Access)
 
 
 class FollowUp(TimestampMixin, Base):
@@ -66,6 +67,7 @@ class FollowUp(TimestampMixin, Base):
     done: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     done_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     reminder_sent: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_by: Mapped[str | None] = mapped_column(String(120))  # operador (login Cloudflare Access)
 
 
 class Opportunity(TimestampMixin, Base):

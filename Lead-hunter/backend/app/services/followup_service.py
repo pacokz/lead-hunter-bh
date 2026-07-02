@@ -23,6 +23,7 @@ def log_interaction(
     channel: ContactChannel | None = None,
     direction: str | None = None,
     content: str | None = None,
+    created_by: str | None = None,
 ) -> Interaction:
     it = Interaction(
         place_id=place_id,
@@ -30,6 +31,7 @@ def log_interaction(
         direction=direction,
         content=content,
         logged_by_samuel=True,
+        created_by=created_by,
     )
     session.add(it)
     session.commit()
@@ -56,8 +58,11 @@ def schedule_followup(
     type: str,
     scheduled_at: datetime | None = None,
     note: str | None = None,
+    created_by: str | None = None,
 ) -> FollowUp:
-    fu = FollowUp(place_id=place_id, type=type, scheduled_at=scheduled_at, note=note)
+    fu = FollowUp(
+        place_id=place_id, type=type, scheduled_at=scheduled_at, note=note, created_by=created_by
+    )
     session.add(fu)
     session.commit()
     session.refresh(fu)

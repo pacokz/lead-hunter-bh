@@ -110,6 +110,7 @@ export interface CrmCard {
   site_class: SiteCategory | null;
   phone: string | null;
   instagram_handle: string | null;
+  owner: string | null;
 }
 
 // ---------------------------------------------------------------- outreach / atividade
@@ -129,6 +130,7 @@ export interface Interaction {
   direction: string | null;
   content: string | null;
   created_at: string | null;
+  created_by: string | null;
 }
 
 export interface FollowUp {
@@ -139,6 +141,7 @@ export interface FollowUp {
   note: string | null;
   done: boolean;
   done_at: string | null;
+  created_by: string | null;
 }
 
 export interface FollowUpAgenda extends FollowUp {
@@ -216,4 +219,36 @@ export interface DashboardStats {
   prioritarios: number;
   inCrm: number;
   followUpsToday: number;
+}
+
+// ---------------------------------------------------------------- demos
+
+export type DemoStatus = "RASCUNHO" | "EM_QA" | "APROVADA" | "PUBLICADA";
+
+export interface Demo {
+  slug: string;
+  name: string;
+  bairro: string | null;
+  status: DemoStatus;
+  published_url: string | null;
+  craft_score: number | null;
+  publishable: boolean | null;
+  blockers: string[];
+  craft_issues: string[];
+  screenshots: Partial<Record<"desktop" | "tablet" | "mobile", string>>;
+  preview_path: string | null;
+  updated_at: string | null;
+}
+
+// ---------------------------------------------------------------- identidade
+
+export interface Me {
+  email: string | null;
+  authenticated: boolean;
+  operator: {
+    id: string;
+    name: string;
+    shortName: string;
+    initials: string;
+  } | null;
 }

@@ -72,6 +72,18 @@ export default function CampaignsPage() {
   const quotaExhausted =
     !!stats.data && !!settings.data && stats.data.api_today >= settings.data.api_daily_limit;
 
+  // Campanhas agrupadas por nicho (categoria)
+  const nicheGroups = useMemo(() => {
+    const map = new Map<string, Campaign[]>();
+    for (const c of campaigns.data ?? []) {
+      const key = c.category ?? "Sem categoria";
+      const list = map.get(key) ?? [];
+      list.push(c);
+      map.set(key, list);
+    }
+    return [...map.entries()].sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+  }, [campaigns.data]);
+
   return (
     <div className="animate-fade-up">
       <PageHeader
@@ -155,14 +167,26 @@ export default function CampaignsPage() {
           />
         </Card>
       ) : (
-        <div className="space-y-3">
-          {campaigns.data.map((c) => (
-            <CampaignCard
-              key={c.id}
-              campaign={c}
-              jobs={jobsByCampaign.get(c.id) ?? []}
-              quotaExhausted={quotaExhausted}
-            />
+        <div className="space-y-6">
+          {nicheGroups.map(([niche, list]) => (
+            <section key={niche} aria-label={`Campanhas de ${niche}`}>
+              <h2 className="mb-2 flex items-center gap-2 font-display text-xs font-semibold uppercase tracking-wide text-ink-soft">
+                {niche}
+                <span className="tnum rounded-full bg-line px-1.5 font-sans text-2xs font-semibold normal-case text-ink-muted">
+                  {list.length}
+                </span>
+              </h2>
+              <div className="space-y-3">
+                {list.map((c) => (
+                  <CampaignCard
+                    key={c.id}
+                    campaign={c}
+                    jobs={jobsByCampaign.get(c.id) ?? []}
+                    quotaExhausted={quotaExhausted}
+                  />
+                ))}
+              </div>
+            </section>
           ))}
         </div>
       )}

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
+import { OperatorAvatar } from "@/components/domain/operator";
 import { useCompleteFollowUp, useFollowUps } from "@/lib/queries";
 import { fmtDateTime, fmtWeekday, isOverdue, isToday } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -117,6 +118,9 @@ export default function FollowUpsPage() {
                         </Link>
                         <p className="truncate text-xs text-ink-muted">{fu.note ?? fu.type}</p>
                       </div>
+                      {fu.created_by && (
+                        <OperatorAvatar id={fu.created_by} className="shrink-0" />
+                      )}
                       <Button
                         size="sm"
                         loading={complete.isPending && complete.variables === fu.id}
