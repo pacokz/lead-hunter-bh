@@ -470,6 +470,27 @@ const run = {
         process.exit(1);
       }
       console.log((vg.stdout || "").trim());
+      // GATE CRAFT (nivel 2) — revisao visual com NOTA: exige _qa/critique.json da rubrica QA-VISUAL.md
+      const critPath = resolve(dir, "_qa", "critique.json");
+      if (!existsSync(critPath)) {
+        console.error("PUBLICACAO BLOQUEADA — falta a REVISAO VISUAL. Rode qa-visual (screenshots desktop/mobile),");
+        console.error("avalie pela rubrica QA-VISUAL.md e escreva demos/" + slug + "/_qa/critique.json:");
+        console.error('  {"score": 0-10, "blockers": ["bug grave..."], "craft_issues": ["..."], "hero_strategy": "..."}');
+        process.exit(1);
+      }
+      let crit;
+      try { crit = JSON.parse(readFileSync(critPath, "utf8")); }
+      catch { console.error("_qa/critique.json invalido (JSON)."); process.exit(1); }
+      if ((crit.blockers || []).length) {
+        console.error("PUBLICACAO BLOQUEADA — blockers na revisao visual:\n- " + crit.blockers.join("\n- "));
+        process.exit(1);
+      }
+      if (typeof crit.score === "number" && crit.score < 7) {
+        console.error(`PUBLICACAO BLOQUEADA — craft score ${crit.score}/10 (< 7). Motivos: ${(crit.craft_issues || []).join("; ")}.`);
+        console.error("Melhore hierarquia/espacamento/composicao e reavalie. (--force ignora, NAO recomendado.)");
+        process.exit(1);
+      }
+      console.log(`Revisao visual: craft ${crit.score ?? "?"}/10 ✓`);
     }
     const scope = flags.scope || process.env.VERCEL_SCOPE;
     const vargs = ["deploy", "--prod", "--yes"];

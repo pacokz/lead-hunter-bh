@@ -76,6 +76,24 @@ CHECK_JS = r"""
   const ov=[];
   for(let i=0;i<cn.length;i++)for(let j=i+1;j<cn.length;j++){const a=cn[i],b=cn[j];if(a.contains(b)||b.contains(a))continue;const ra=a.getBoundingClientRect(),rb=b.getBoundingClientRect();const ox=Math.max(0,Math.min(ra.right,rb.right)-Math.max(ra.left,rb.left)),oy=Math.max(0,Math.min(ra.bottom,rb.bottom)-Math.max(ra.top,rb.top)),ar=ox*oy;if(ar<=0)continue;const mn=Math.min(ra.width*ra.height,rb.width*rb.height);if(ar>0.35*mn)ov.push(((a.innerText||'').trim().slice(0,18))+' x '+((b.innerText||'').trim().slice(0,18)));}
   out.overlaps=[...new Set(ov)].slice(0,5);
+  // pagina arrasta na horizontal? (teste ativo, alem do scrollWidth estatico)
+  const _sx=window.scrollX; window.scrollTo(99999,0); out.pageHScroll=Math.round(window.scrollX||window.pageXOffset||0); window.scrollTo(_sx,0);
+  // carrossel/scroll horizontal FULL-WIDTH no mobile (o "arrasta pro lado" que parece bug)
+  out.mobileCarousels=0;
+  if(window.innerWidth<500){
+    out.mobileCarousels=[...document.querySelectorAll('*')].filter(e=>{const s=getComputedStyle(e);return /(auto|scroll)/.test(s.overflowX)&&e.scrollWidth-e.clientWidth>24&&e.getBoundingClientRect().width>window.innerWidth*0.8;}).length;
+  }
+  // stat com "0"/placeholder onde deveria ter numero real
+  const zeros=[]; const _t=(document.body.innerText||'');
+  for(const m of _t.matchAll(/\b0\b\s{0,4}(avalia\w*|pacient\w*|anos|clientes|atendidos|reais)/gi)) zeros.push(m[0].replace(/\s+/g,' ').trim().slice(0,30));
+  out.zeroStats=[...new Set(zeros)].slice(0,4);
+  // CTA (botao de acao) visivel acima da dobra?
+  const _ctas=[...document.querySelectorAll('a.btn,.btn,button')].filter(e=>{const r=e.getBoundingClientRect();return r.width>0&&r.height>0&&(e.textContent||'').trim().length>2;});
+  out.ctaAboveFold=_ctas.some(e=>e.getBoundingClientRect().top<window.innerHeight*0.95);
+  // secoes GRANDES com pouco conteudo e sem media = espaco morto
+  const sparse=[];
+  for(const s of document.querySelectorAll('section')){const r=s.getBoundingClientRect();const t=(s.innerText||'').trim();const media=s.querySelector('img,video,svg,picture,canvas')||/url\(/.test(getComputedStyle(s).backgroundImage);if(r.height>640&&t.length<110&&!media)sparse.push(t.slice(0,24)||'(vazia)');}
+  out.sparseSections=[...new Set(sparse)].slice(0,4);
   return out;
 }
 """
@@ -116,6 +134,16 @@ with sync_playwright() as p:
                 add("MEDIA", vp_name, f"texto CORTADO dentro do container: '{t}'")
             if r.get("smallTargets"):
                 add("MEDIA", vp_name, f"{r['smallTargets']} botao(oes) com alvo de toque < 40px de altura no celular")
+            if r.get("pageHScroll", 0) > 3:
+                add("ALTA", vp_name, f"pagina ARRASTA na horizontal ({r['pageHScroll']}px) — algo estoura a largura")
+            if r.get("mobileCarousels", 0) > 0:
+                add("ALTA", vp_name, f"{r['mobileCarousels']} secao(oes) com scroll horizontal full-width no MOBILE ('arrasta pro lado' = parece bug; so carrossel com affordance clara e nao full-bleed)")
+            for z in r.get("zeroStats", []):
+                add("ALTA", vp_name, f"stat com valor ZERO/placeholder: '{z}' (numero real faltando ou contador travado)")
+            if vp_name in ("mobile", "desktop") and not r.get("ctaAboveFold", True):
+                add("MEDIA", vp_name, "nenhum CTA de acao visivel acima da dobra")
+            for s in r.get("sparseSections", []):
+                add("MEDIA", vp_name, f"secao GRANDE com pouco conteudo e sem imagem (espaco morto): '{s}'")
             for e in errs[:5]:
                 add("MEDIA", vp_name, f"erro de JavaScript no console: {e[:140]}")
         except Exception as ex:

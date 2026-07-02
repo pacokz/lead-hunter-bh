@@ -38,6 +38,17 @@
 > Regra: pelo menos 1 referência de **fora do nicho** do lead. Roubo = algo nomeável
 > (um tipo de hero, uma seção, um par tipográfico, um tratamento de imagem), não "o clima".
 
+## 6b. Estratégia visual — DECLARE antes de codar (o coração do craft)
+- **`hero_strategy`** — a decisão dominante da hero (escolha UMA, diferente das últimas):
+  `typographic` · `editorial` · `full-bleed` (produto/ambiente) · `split-assimétrico` ·
+  `manifesto` · `diagnóstico-visual` · outra.
+- **`primary_visual_move`** — o gesto visual que carrega o site, em 1 frase.
+- **`image_treatment`** — COMO a imagem entra, **materialmente diferente das últimas N demos**.
+  ⛔ NÃO repita "foto decorativa em moldura ao lado do texto" — **arco, círculo, blob e card
+  arredondado contam como a MESMA categoria**. Ex. de alternativas: full-bleed atrás do texto,
+  duotone, colagem editorial, máscara tipográfica na foto, sem retrato, grid de detalhes.
+- **Por que diferente das últimas** (hero + imagem, citando o livro de repetições): …
+
 ## 7. Direção de arte — tipografia LIVRE
 - **Tipografia:** par **display + body** escolhido LIVREMENTE — **qualquer fonte real**
   (Google Fonts, Fontshare, etc.), ancorado numa referência. Diga os NOMES e o porquê.
@@ -88,9 +99,12 @@
       (COMO reconstruir aquele elemento neste site — a Nobara tem que SEGUIR E REMODELAR a ref,
       não só pegar "o clima").
 - [ ] Pelo menos 1 referência de fora do nicho.
-- [ ] O **tipo de HERO** é diferente de TODOS no livro (`demos/_repetition-book.md`): se já
-      teve split/foto-ao-lado, agora é full-bleed / centralizado / foto-de-fundo / editorial-só-texto…
+- [ ] **`hero_strategy` declarado** e diferente de TODOS no livro (`demos/_repetition-book.md`).
+- [ ] **`image_treatment` materialmente diferente** das últimas N — NÃO repetir "foto em moldura
+      ao lado do texto" (arco/círculo/blob/card = mesma categoria banida por ora).
 - [ ] Há **animação/movimento PRESCRITO** (2–3 interações reais) — o site não pode sair estático.
+- [ ] **Sem scroll horizontal no mobile** que pareça bug (só carrossel com affordance clara:
+      cards parciais, snap, setas/dots — e sem estourar a página).
 - [ ] Tipografia livre e diferente da dos últimos sites.
 - [ ] O esqueleto é claramente diferente dos últimos demos.
 - [ ] A cor foi validada por logo/assets (não a auto-detectada).

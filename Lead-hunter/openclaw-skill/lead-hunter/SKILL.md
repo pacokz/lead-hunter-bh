@@ -54,10 +54,16 @@ A demo nasce da **rota criativa** (NÃO do template) — é isso que garante que
    composição PRÓPRIAS**. É **PROIBIDO** usar `render.mjs`/`demo-render` (gera site templateado).
    Antes de começar, LÊ `demos/_repetition-book.md` e **não repete nenhum padrão** de lá;
    ao terminar, **anota** o que usou (hero, layout, animações, tipografia, grid, tratamento).
-4. Resuma pro Samuel (negócio, referências usadas, link do arquivo). Ele revisa/aprova.
-5. `demo-publicar <slug> --scope balmor-s-projects` — roda **QA + GATE VISUAL** (reprova site
-   templateado ou parecido demais com anterior) e só então sobe ao vivo e devolve o link.
-6. Entregue o link pro Samuel. **Ele é quem manda pro lead** — você nunca envia.
+4. **QA OBRIGATÓRIO (2 níveis) antes de publicar:**
+   (a) `python skills/verifica-interface/check.py demos/<slug>/index.html` — bugs objetivos
+       (overflow, **carrossel horizontal no mobile**, stat "0", contraste, espaço morto). Zero [ALTA].
+   (b) `python skills/verifica-interface/qa-visual.py demos/<slug>/index.html` — gera screenshots;
+       avalie pela rubrica `QA-VISUAL.md` e escreva `demos/<slug>/_qa/critique.json`
+       (**nota craft 0–10 + blockers**). Nota < 7 ou blocker = refaz.
+5. Resuma pro Samuel (negócio, referências usadas, link do arquivo). Ele revisa/aprova.
+6. `demo-publicar <slug> --scope balmor-s-projects` — roda TODOS os gates (template, similaridade,
+   movimento, números, check.py e o **craft score**) e só então sobe ao vivo e devolve o link.
+7. Entregue o link pro Samuel. **Ele é quem manda pro lead** — você nunca envia.
 
 > **`render.mjs` / `demo` / `demo-render` são FALLBACK de emergência** (lead 100% sem material)
 > — geram esqueleto parametrizado e o **gate visual REPROVA** pra publicação. A rota padrão é
