@@ -19,10 +19,18 @@ export function Dialog({
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // onClose vem como arrow function nova a cada render do pai; se entrar nas
+  // deps do efeito de foco, CADA tecla digitada re-roda o efeito e rouba o
+  // foco pro primeiro campo do modal (bug: "clica no canal sozinho").
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     const el = panelRef.current?.querySelector<HTMLElement>(
@@ -30,7 +38,7 @@ export function Dialog({
     );
     el?.focus();
     return () => document.removeEventListener("keydown", onKey);
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
