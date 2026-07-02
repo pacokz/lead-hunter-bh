@@ -1,97 +1,83 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChevronRight, Instagram, Phone, Search, SlidersHorizontal, X } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  Instagram,
+  KanbanSquare,
+  Phone,
+  Search,
+  SlidersHorizontal,
+  X,
+} from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input, Select } from "@/components/ui/input";
 import { Table, Td, Th, Tr } from "@/components/ui/table";
+import { Tabs } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
-import { ScoreBandBadge, SiteCategoryBadge, CrmStageBadge } from "@/components/domain/badges";
-import { OperatorAvatar } from "@/components/domain/operator";
+import { CrmStageBadge, ScoreBandBadge, SiteCategoryBadge } from "@/components/domain/badges";
 import { Rating } from "@/components/domain/rating";
-import { useLeads, usePromoteToCrm, useSettings } from "@/lib/queries";
-import { useOperator } from "@/lib/operator";
-import { SCORE_BANDS, OPERATOR_LIST, OPERATORS } from "@/lib/domain";
+import { useCategories, useLeads, usePromoteQualified } from "@/lib/queries";
+import { SCORE_BANDS, SITE_CATEGORIES } from "@/lib/domain";
+import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Lead, ScoreBand, SiteCategory } from "@/lib/types";
-import { SITE_CATEGORIES } from "@/lib/domain";
+import type { RankedLead, ScoreBand, SiteCategory } from "@/lib/types";
 
 const ALL = "__all__";
+type ContactTab = "all" | "todo" | "contacted";
 
 export default function LeadsPage() {
   const leads = useLeads();
-  const settings = useSettings();
-  const promote = usePromoteToCrm();
-  const { operatorId } = useOperator();
+  const categories = useCategories();
+  const promote = usePromoteQualified();
   const { toast } = useToast();
   const router = useRouter();
 
+  const [tab, setTab] = useState<ContactTab>("all");
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState(ALL);
-  const [region, setRegion] = useState(ALL);
   const [band, setBand] = useState(ALL);
   const [site, setSite] = useState(ALL);
   const [crmFilter, setCrmFilter] = useState(ALL);
-  const [owner, setOwner] = useState(ALL);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const hasFilters =
-    search !== "" || [category, region, band, site, crmFilter, owner].some((f) => f !== ALL);
+  const hasFilters = search !== "" || [category, band, site, crmFilter].some((f) => f !== ALL);
 
-  const filtered = useMemo(() => {
+  const base = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (leads.data ?? []).filter((l) => {
-      if (q && !l.name.toLowerCase().includes(q) && !l.address.toLowerCase().includes(q))
-        return false;
+      if (q && !l.name.toLowerCase().includes(q)) return false;
       if (category !== ALL && l.category !== category) return false;
-      if (region !== ALL && l.region !== region) return false;
-      if (band !== ALL && l.score?.band !== band) return false;
-      if (site !== ALL && l.audit?.category !== site) return false;
-      if (crmFilter === "in" && !l.crm) return false;
-      if (crmFilter === "out" && l.crm) return false;
-      if (owner !== ALL && l.crm?.owner !== owner) return false;
+      if (band !== ALL && l.band !== band) return false;
+      if (site !== ALL && l.site_class !== site) return false;
+      if (crmFilter === "in" && !l.stage) return false;
+      if (crmFilter === "out" && l.stage) return false;
       return true;
     });
-  }, [leads.data, search, category, region, band, site, crmFilter, owner]);
+  }, [leads.data, search, category, band, site, crmFilter]);
 
-  const selectable = filtered.filter((l) => !l.crm && l.score);
-  const allSelected = selectable.length > 0 && selectable.every((l) => selected.has(l.id));
-
-  function toggleAll() {
-    setSelected(allSelected ? new Set() : new Set(selectable.map((l) => l.id)));
-  }
-
-  function toggle(id: string) {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  }
-
-  async function promoteSelected() {
-    const ids = [...selected];
-    for (const leadId of ids) {
-      await promote.mutateAsync({ leadId, by: operatorId });
-    }
-    toast("success", `${ids.length} lead${ids.length > 1 ? "s" : ""} promovido${ids.length > 1 ? "s" : ""} pro CRM por ${OPERATORS[operatorId].shortName}`);
-    setSelected(new Set());
-  }
+  const contacted = base.filter((l) => l.contacted);
+  const toContact = base.filter((l) => !l.contacted);
+  const rows =
+    tab === "contacted"
+      ? [...contacted].sort((a, b) =>
+          (b.last_contact_at ?? "").localeCompare(a.last_contact_at ?? "")
+        )
+      : tab === "todo"
+        ? toContact
+        : base;
 
   function clearFilters() {
     setSearch("");
     setCategory(ALL);
-    setRegion(ALL);
     setBand(ALL);
     setSite(ALL);
     setCrmFilter(ALL);
-    setOwner(ALL);
   }
 
   return (
@@ -99,6 +85,36 @@ export default function LeadsPage() {
       <PageHeader
         title="Leads"
         description="Ranqueados por score de oportunidade — quanto maior, melhor o candidato."
+        action={
+          <Button
+            variant="primary"
+            loading={promote.isPending}
+            title="Move todos os leads ALTO POTENCIAL e PRIORIDADE que ainda não estão no CRM"
+            onClick={async () => {
+              const res = await promote.mutateAsync();
+              toast(
+                "success",
+                res.promoted > 0
+                  ? `${res.promoted} lead${res.promoted > 1 ? "s" : ""} promovido${res.promoted > 1 ? "s" : ""} pro CRM`
+                  : "Nenhum lead novo pra promover"
+              );
+            }}
+          >
+            <KanbanSquare className="h-4 w-4" aria-hidden />
+            Promover qualificados
+          </Button>
+        }
+      />
+
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "all", label: "Todos", count: base.length },
+          { value: "todo", label: "A contatar", count: toContact.length },
+          { value: "contacted", label: "Contatados", count: contacted.length },
+        ]}
+        className="mb-3"
       />
 
       <Card>
@@ -108,7 +124,7 @@ export default function LeadsPage() {
             <Input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Buscar por nome ou endereço..."
+              placeholder="Buscar por nome..."
               className="h-8 w-60 pl-8"
               aria-label="Buscar leads"
             />
@@ -117,14 +133,8 @@ export default function LeadsPage() {
           <SlidersHorizontal className="hidden h-3.5 w-3.5 text-ink-faint md:block" aria-hidden />
           <Select value={category} onChange={(e) => setCategory(e.target.value)} className="h-8" aria-label="Filtrar por categoria">
             <option value={ALL}>Categoria</option>
-            {(settings.data?.categories ?? []).map((c) => (
-              <option key={c} value={c}>{c}</option>
-            ))}
-          </Select>
-          <Select value={region} onChange={(e) => setRegion(e.target.value)} className="h-8" aria-label="Filtrar por região">
-            <option value={ALL}>Região</option>
-            {(settings.data?.regions ?? []).map((r) => (
-              <option key={r} value={r}>{r}</option>
+            {(categories.data ?? []).map((c) => (
+              <option key={c.id} value={c.name}>{c.name}</option>
             ))}
           </Select>
           <Select value={band} onChange={(e) => setBand(e.target.value)} className="h-8" aria-label="Filtrar por faixa de score">
@@ -144,12 +154,6 @@ export default function LeadsPage() {
             <option value="in">No CRM</option>
             <option value="out">Fora do CRM</option>
           </Select>
-          <Select value={owner} onChange={(e) => setOwner(e.target.value)} className="h-8" aria-label="Filtrar por responsável">
-            <option value={ALL}>Responsável</option>
-            {OPERATOR_LIST.map((op) => (
-              <option key={op.id} value={op.id}>{op.shortName}</option>
-            ))}
-          </Select>
           {hasFilters && (
             <Button variant="ghost" size="sm" onClick={clearFilters}>
               <X className="h-3.5 w-3.5" aria-hidden />
@@ -157,50 +161,28 @@ export default function LeadsPage() {
             </Button>
           )}
           <span className="tnum ml-auto text-xs text-ink-muted">
-            {leads.data ? `${filtered.length} de ${leads.data.length}` : "..."}
+            {leads.data ? `${rows.length} de ${leads.data.length}` : "..."}
           </span>
         </div>
 
-        {selected.size > 0 && (
-          <div className="flex items-center gap-3 border-b border-violet-200 bg-violet-50 px-4 py-2 animate-fade-up">
-            <p className="tnum text-sm font-medium text-violet-700">
-              {selected.size} selecionado{selected.size > 1 ? "s" : ""}
-            </p>
-            <Button
-              variant="primary"
-              size="sm"
-              loading={promote.isPending}
-              onClick={promoteSelected}
-            >
-              Promover pro CRM
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
-              Cancelar
-            </Button>
-            <p className="ml-auto text-2xs text-violet-600">
-              Responsável: {OPERATORS[operatorId].shortName} (operador ativo)
-            </p>
-          </div>
-        )}
-
         {leads.isPending ? (
-          <TableSkeleton rows={10} cols={7} />
+          <TableSkeleton rows={10} cols={6} />
         ) : leads.isError ? (
-          <ErrorState onRetry={() => leads.refetch()} />
-        ) : filtered.length === 0 ? (
+          <ErrorState message={String(leads.error)} onRetry={() => leads.refetch()} />
+        ) : rows.length === 0 ? (
           <EmptyState
-            title={hasFilters ? "Nenhum lead com esses filtros" : "Nenhum lead ainda"}
+            title={hasFilters ? "Nenhum lead com esses filtros" : "Nenhum lead pontuado ainda"}
             description={
               hasFilters
                 ? "Afrouxe os filtros ou limpe tudo pra ver a lista completa."
-                : "Crie uma campanha de busca pra começar a encontrar negócios."
+                : "Crie uma campanha e rode o pipeline (auditoria + score) pra popular esta lista."
             }
             action={
               hasFilters ? (
                 <Button size="sm" onClick={clearFilters}>Limpar filtros</Button>
               ) : (
                 <Button variant="primary" size="sm" onClick={() => router.push("/campaigns")}>
-                  Criar campanha
+                  Ir pra Campanhas
                 </Button>
               )
             }
@@ -209,16 +191,7 @@ export default function LeadsPage() {
           <Table>
             <thead>
               <tr>
-                <Th className="w-8">
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleAll}
-                    aria-label="Selecionar todos os leads elegíveis"
-                    className="accent-violet-500"
-                  />
-                </Th>
-                <Th className="w-20">Score</Th>
+                <Th className="w-16">Score</Th>
                 <Th>Negócio</Th>
                 <Th>Site</Th>
                 <Th>Reputação</Th>
@@ -228,13 +201,11 @@ export default function LeadsPage() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((lead) => (
+              {rows.map((lead) => (
                 <LeadRow
-                  key={lead.id}
+                  key={lead.place_id}
                   lead={lead}
-                  checked={selected.has(lead.id)}
-                  onToggle={() => toggle(lead.id)}
-                  onOpen={() => router.push(`/leads/${lead.id}`)}
+                  onOpen={() => router.push(`/leads/${encodeURIComponent(lead.place_id)}`)}
                 />
               ))}
             </tbody>
@@ -245,75 +216,53 @@ export default function LeadsPage() {
   );
 }
 
-function LeadRow({
-  lead,
-  checked,
-  onToggle,
-  onOpen,
-}: {
-  lead: Lead;
-  checked: boolean;
-  onToggle: () => void;
-  onOpen: () => void;
-}) {
+function LeadRow({ lead, onOpen }: { lead: RankedLead; onOpen: () => void }) {
   return (
     <Tr className="cursor-pointer" onClick={onOpen}>
-      <Td onClick={(e) => e.stopPropagation()}>
-        <input
-          type="checkbox"
-          checked={checked}
-          disabled={!!lead.crm || !lead.score}
-          onChange={onToggle}
-          aria-label={`Selecionar ${lead.name}`}
-          className="accent-violet-500 disabled:opacity-30"
-        />
+      <Td>
+        <span
+          className={cn(
+            "tnum inline-flex h-7 w-9 items-center justify-center rounded-ctrl font-display text-sm font-bold",
+            lead.band === "PRIORIDADE" ? "bg-violet-500 text-white" : "bg-line-soft text-ink"
+          )}
+        >
+          {lead.score}
+        </span>
       </Td>
       <Td>
-        {lead.score ? (
-          <div className="flex items-center gap-2">
-            <span
-              className={cn(
-                "tnum inline-flex h-7 w-9 items-center justify-center rounded-ctrl font-display text-sm font-bold",
-                lead.score.band === "PRIORIDADE"
-                  ? "bg-violet-500 text-white"
-                  : "bg-line-soft text-ink"
-              )}
-            >
-              {lead.score.total}
-            </span>
+        <div className="flex items-center gap-2">
+          <div className="min-w-0">
+            <p className="max-w-[320px] truncate text-sm font-semibold text-ink">{lead.name}</p>
+            {lead.category && <p className="text-2xs text-ink-muted">{lead.category}</p>}
           </div>
+          {lead.band === "PRIORIDADE" && <ScoreBandBadge band={lead.band} />}
+        </div>
+      </Td>
+      <Td><SiteCategoryBadge category={lead.site_class} /></Td>
+      <Td>
+        {lead.rating !== null ? (
+          <Rating rating={lead.rating} reviews={lead.reviews_count ?? 0} />
         ) : (
           <span className="text-xs text-ink-faint">—</span>
         )}
       </Td>
       <Td>
-        <div className="flex items-center gap-2">
-          <div className="min-w-0">
-            <p className="truncate text-sm font-semibold text-ink">{lead.name}</p>
-            <p className="text-2xs text-ink-muted">
-              {lead.category} · {lead.region}
-            </p>
-          </div>
-          {lead.score && lead.score.band === "PRIORIDADE" && <ScoreBandBadge band={lead.score.band} />}
-        </div>
-      </Td>
-      <Td><SiteCategoryBadge category={lead.audit?.category} /></Td>
-      <Td><Rating rating={lead.rating} reviews={lead.reviews} /></Td>
-      <Td>
-        <div className="flex items-center gap-1.5 text-ink-muted">
-          {lead.phone && <Phone className="h-3.5 w-3.5" aria-label="Tem telefone" />}
-          {lead.audit?.instagram && <Instagram className="h-3.5 w-3.5" aria-label="Tem Instagram" />}
-          {!lead.phone && !lead.audit?.instagram && (
-            <span className="text-xs text-ink-faint">—</span>
+        <div className="flex items-center gap-1.5">
+          <span className="flex items-center gap-1.5 text-ink-muted">
+            {lead.phone && <Phone className="h-3.5 w-3.5" aria-label="Tem telefone" />}
+            {lead.instagram_handle && <Instagram className="h-3.5 w-3.5" aria-label="Tem Instagram" />}
+          </span>
+          {lead.contacted && (
+            <Badge className="border-ok-line bg-ok-bg text-ok">
+              <CheckCircle2 className="h-3 w-3" aria-hidden />
+              {lead.last_contact_at ? fmtDate(lead.last_contact_at) : "contatado"}
+            </Badge>
           )}
         </div>
       </Td>
       <Td>
-        {lead.crm ? (
-          <div className="flex items-center gap-1.5">
-            <CrmStageBadge stage={lead.crm.stage} />
-            <OperatorAvatar id={lead.crm.owner} size="sm" />
-          </div>
+        {lead.stage ? (
+          <CrmStageBadge stage={lead.stage} />
         ) : (
           <span className="text-xs text-ink-faint">—</span>
         )}

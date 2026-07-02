@@ -1,56 +1,27 @@
-import type {
-  CrmStage,
-  DemoStatus,
-  IssueSeverity,
-  Operator,
-  OperatorId,
-  QaSeverity,
-  ScoreBand,
-  SiteCategory,
-} from "./types";
+import type { CampaignStatus, CrmStage, IssueSeverity, JobStatus, ScoreBand, SiteCategory } from "./types";
 
-export const OPERATORS: Record<OperatorId, Operator> = {
-  samuel: { id: "samuel", name: "Samuel Armanelli", shortName: "Samuel", initials: "SA" },
-  jose: { id: "jose", name: "José Vinícius", shortName: "José", initials: "JV" },
-};
-
-export const OPERATOR_LIST = Object.values(OPERATORS);
-
-export const SCORE_BANDS: Record<ScoreBand, { label: string; className: string; dot: string }> = {
+export const SCORE_BANDS: Record<ScoreBand, { label: string; className: string }> = {
   PRIORIDADE: {
     label: "Prioridade",
     className: "bg-violet-500 text-white border-violet-500",
-    dot: "bg-violet-500",
   },
   ALTO_POTENCIAL: {
     label: "Alto potencial",
     className: "bg-ok-bg text-ok border-ok-line",
-    dot: "bg-ok",
   },
   REVISAR: {
     label: "Revisar",
     className: "bg-warn-bg text-warn border-warn-line",
-    dot: "bg-warn",
   },
   BAIXO_POTENCIAL: {
     label: "Baixo potencial",
     className: "bg-paper text-ink-muted border-line",
-    dot: "bg-ink-faint",
   },
   DESCARTAR: {
     label: "Descartar",
     className: "bg-bad-bg text-bad border-bad-line",
-    dot: "bg-bad",
   },
 };
-
-export function bandForScore(total: number): ScoreBand {
-  if (total >= 85) return "PRIORIDADE";
-  if (total >= 70) return "ALTO_POTENCIAL";
-  if (total >= 60) return "REVISAR";
-  if (total >= 40) return "BAIXO_POTENCIAL";
-  return "DESCARTAR";
-}
 
 export const SITE_CATEGORIES: Record<SiteCategory, { label: string; className: string }> = {
   SEM_SITE: { label: "Sem site", className: "bg-bad-bg text-bad border-bad-line" },
@@ -88,27 +59,40 @@ export const CRM_STAGE_ORDER: CrmStage[] = [
   "PERDIDO",
 ];
 
-export const DEMO_STATUSES: Record<DemoStatus, { label: string; className: string }> = {
-  RASCUNHO: { label: "Rascunho", className: "bg-paper text-ink-muted border-line" },
-  EM_QA: { label: "Em QA", className: "bg-warn-bg text-warn border-warn-line" },
-  APROVADA: { label: "Aprovada", className: "bg-ok-bg text-ok border-ok-line" },
-  PUBLICADA: { label: "Publicada", className: "bg-violet-500 text-white border-violet-500" },
-};
-
 export const ISSUE_SEVERITIES: Record<IssueSeverity, { label: string; className: string }> = {
   ALTA: { label: "Alta", className: "bg-bad-bg text-bad border-bad-line" },
   MEDIA: { label: "Média", className: "bg-warn-bg text-warn border-warn-line" },
   BAIXA: { label: "Baixa", className: "bg-paper text-ink-muted border-line" },
 };
 
-export const QA_SEVERITIES: Record<QaSeverity, { label: string; className: string }> = {
-  BLOCKER: { label: "Blocker", className: "bg-bad-bg text-bad border-bad-line" },
-  MAJOR: { label: "Major", className: "bg-warn-bg text-warn border-warn-line" },
-  MINOR: { label: "Minor", className: "bg-paper text-ink-muted border-line" },
+export function normalizeSeverity(s: string | null): IssueSeverity {
+  const up = (s ?? "").toUpperCase();
+  if (up === "ALTA" || up === "MEDIA" || up === "BAIXA") return up;
+  return "MEDIA";
+}
+
+// Componentes do score como o backend grava (score_service.compute)
+export const SCORE_COMPONENT_LABELS: Record<string, { label: string; hint: string }> = {
+  site_oportunidade: {
+    label: "Oportunidade de site",
+    hint: "Quanto pior a presença digital, maior a oportunidade",
+  },
+  reviews: { label: "Volume de avaliações", hint: "Negócio movimentado tem mais a ganhar com site" },
+  nota: { label: "Nota no Google", hint: "Boa reputação facilita a venda" },
+  contato: { label: "Facilidade de contato", hint: "Telefone + WhatsApp = abordagem direta" },
+  segmento: { label: "Segmento", hint: "Peso do nicho na estratégia atual" },
 };
 
-export function demoIsBlocked(issues: { severity: QaSeverity }[] | undefined, craftScore?: number) {
-  const hasBlocker = (issues ?? []).some((i) => i.severity === "BLOCKER");
-  const lowCraft = craftScore !== undefined && craftScore < 7;
-  return hasBlocker || lowCraft;
-}
+export const CAMPAIGN_STATUSES: Record<CampaignStatus, { label: string; className: string }> = {
+  DRAFT: { label: "Rascunho", className: "bg-paper text-ink-muted border-line" },
+  RUNNING: { label: "Ativa", className: "bg-violet-100 text-violet-700 border-violet-200" },
+  PAUSED: { label: "Pausada", className: "bg-warn-bg text-warn border-warn-line" },
+  DONE: { label: "Concluída", className: "bg-ok-bg text-ok border-ok-line" },
+};
+
+export const JOB_STATUSES: Record<JobStatus, { label: string; className: string }> = {
+  PENDING: { label: "Pendente", className: "bg-paper text-ink-muted border-line" },
+  RUNNING: { label: "Executando", className: "bg-sky2-bg text-sky2 border-sky2-line" },
+  DONE: { label: "Concluído", className: "bg-ok-bg text-ok border-ok-line" },
+  ERROR: { label: "Erro", className: "bg-bad-bg text-bad border-bad-line" },
+};

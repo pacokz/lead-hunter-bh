@@ -1,52 +1,56 @@
-# Lead Hunter BH — Frontend v2 (UI/UX completa)
+# Lead Hunter BH — Frontend v2
 
-Redesign completo da interface do Lead Hunter, com a identidade visual **Balmor**
-(Space Grotesk + Inter, roxo `#7C3AED`, sidebar carvão `#0D0D0D`). Ferramenta
-interna pra dois operadores fixos (Samuel e José) — toda ação é atribuída ao
-operador ativo (seletor na topbar).
+Redesign completo da interface do Lead Hunter com a identidade visual **Balmor**
+(Space Grotesk + Inter, roxo `#7C3AED`, sidebar carvão `#0D0D0D`), **conectado ao
+backend real** (FastAPI + Supabase) — em produção no `app.balmor.tech`.
 
-> **Dados 100% mock.** O backend FastAPI NÃO é consumido — `lib/api.ts` estuba
-> os contratos (cada função comenta o endpoint real equivalente) contra um store
-> em memória (`lib/mock/store.ts`). Pra ligar no backend real, troque o corpo das
-> funções por `fetch()` mantendo as assinaturas; os hooks TanStack Query
-> (`lib/queries.ts`) e as telas não mudam.
+## Arquitetura de dados
+
+O navegador chama `/backend-api/*` (mesma origem) e o Next repassa pro backend via
+rewrite (`next.config.mjs`, `BACKEND_ORIGIN` default `http://localhost:8000`) —
+sem CORS e sem expor o backend na internet.
+
+- `lib/api.ts` — cliente da API real (endpoints FastAPI)
+- `lib/types.ts` — contratos crus do backend + tipos de visão
+- `lib/queries.ts` — hooks TanStack Query + invalidação
+- `lib/domain.ts` — mapas de cor/label por enum (bandas, site_class, estágios, jobs)
 
 ## Rodar
 
 ```bash
 npm install
-npm run dev     # http://localhost:3200
+npm run dev     # http://localhost:3200 (precisa de backend em localhost:8000)
 npm run build && npm start
 ```
 
-Porta 3200 pra não conflitar com o frontend atual (3100) nem com outros apps (3000).
+⚠️ Não suba o backend Docker local apontando pro Supabase compartilhado (briga com a
+produção — pool). Teste na VPS ou com Postgres local.
 
-## Estrutura
+## Telas
 
-```
-app/                    # rotas (App Router)
-  page.tsx              # Dashboard
-  leads/                # lista ranqueada + detalhe (score, auditoria, abordagem)
-  crm/                  # kanban 10 estágios com drag & drop nativo
-  follow-ups/           # agenda global (atrasados/hoje/próximos)
-  demos/                # prévias com gate de QA (publicar trava com BLOCKER/craft<7)
-  campaigns/            # busca Places por categoria+região, jobs e cota
-  settings/             # cota, pesos do score, segmentos, regiões
-components/
-  ui/                   # design system (Button, Badge, Card, Table, Dialog, Toast...)
-  domain/               # badges semânticos, avatar de operador, SiteShot (thumb mock)
-  layout/               # sidebar Balmor, topbar com seletor de operador
-lib/
-  types.ts              # contratos espelhando o backend
-  domain.ts             # mapas de cor/label por enum + regras (bandas, gate de QA)
-  api.ts                # API estubada (latência simulada, mutações persistem na sessão)
-  queries.ts            # hooks TanStack Query + invalidação
-  mock/store.ts         # dataset fictício coerente (score derivado das regras reais)
-```
+| Rota | O quê |
+|---|---|
+| `/` | Dashboard: métricas, leads prioritários, agenda, cota |
+| `/leads` | Tabela ranqueada + abas Todos/A contatar/Contatados + filtros + promover qualificados |
+| `/leads/[id]` | Score com componentes, auditoria (fatos + problemas), abordagem (copiar), CRM, atividade |
+| `/crm` | Kanban 10 estágios com drag & drop |
+| `/follow-ups` | Agenda global (atrasados/hoje/próximos) |
+| `/campaigns` | Campanhas + jobs sob demanda + cota + "Processar agora" (pipeline) |
+| `/settings` | Cota, critérios de qualificação (read-only), segmentos e regiões |
+| `/demos` | Informativa — demos são geradas pelos agentes (Nanami/Nobara) via Discord |
 
 ## Regras de produto respeitadas na UI
 
 - **Outreach manual**: rascunhos têm botão copiar; não existe "enviar".
 - **Score determinístico**: exibido com componentes explicados; sem edição manual.
-- **Gate de QA**: botão Publicar desabilita com BLOCKER ou craft score < 7.
-- **Atribuição**: promover, mover estágio, interação, follow-up e demo registram o operador.
+- **Cota**: jobs bloqueiam quando a cota diária esgota; pipeline (auditar+pontuar) é grátis.
+
+## Deploy (VPS)
+
+```bash
+git push origin master
+ssh root@187.127.41.79 "cd /root/hermes && git pull && cd Lead-hunter/frontend-v2 && npm install && npm run build && systemctl restart frontend-v2"
+```
+
+`frontend-v2.service` roda na porta 3100 (túnel Cloudflare `app.balmor.tech`).
+Rollback pro frontend antigo: `systemctl disable --now frontend-v2 && systemctl enable --now frontend`.

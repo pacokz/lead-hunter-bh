@@ -1,36 +1,47 @@
 "use client";
 
-import {
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import * as api from "./api";
 
 export const qk = {
   stats: ["stats"] as const,
+  backendStats: ["backend-stats"] as const,
   leads: ["leads"] as const,
-  lead: (id: string) => ["leads", id] as const,
-  drafts: (leadId: string) => ["drafts", leadId] as const,
-  interactions: (leadId: string) => ["interactions", leadId] as const,
+  leadContext: (id: string) => ["lead-context", id] as const,
+  drafts: (id: string) => ["drafts", id] as const,
+  interactions: (id: string) => ["interactions", id] as const,
   followUps: ["follow-ups"] as const,
-  demos: ["demos"] as const,
+  leadFollowUps: (id: string) => ["lead-follow-ups", id] as const,
+  crm: ["crm"] as const,
   campaigns: ["campaigns"] as const,
+  jobs: ["jobs"] as const,
   settings: ["settings"] as const,
+  categories: ["categories"] as const,
+  regions: ["regions"] as const,
 };
 
 export const useStats = () => useQuery({ queryKey: qk.stats, queryFn: api.getStats });
+export const useBackendStats = () =>
+  useQuery({ queryKey: qk.backendStats, queryFn: api.getBackendStats });
 export const useLeads = () => useQuery({ queryKey: qk.leads, queryFn: api.getLeads });
-export const useLead = (id: string) =>
-  useQuery({ queryKey: qk.lead(id), queryFn: () => api.getLead(id) });
-export const useDrafts = (leadId: string) =>
-  useQuery({ queryKey: qk.drafts(leadId), queryFn: () => api.getDrafts(leadId) });
-export const useInteractions = (leadId: string) =>
-  useQuery({ queryKey: qk.interactions(leadId), queryFn: () => api.getInteractions(leadId) });
-export const useFollowUps = () => useQuery({ queryKey: qk.followUps, queryFn: api.getFollowUps });
-export const useDemos = () => useQuery({ queryKey: qk.demos, queryFn: api.getDemos });
+export const useLeadContext = (id: string) =>
+  useQuery({ queryKey: qk.leadContext(id), queryFn: () => api.getLeadContext(id) });
+export const useDrafts = (id: string) =>
+  useQuery({ queryKey: qk.drafts(id), queryFn: () => api.getDrafts(id) });
+export const useInteractions = (id: string) =>
+  useQuery({ queryKey: qk.interactions(id), queryFn: () => api.getInteractions(id) });
+export const useFollowUps = () =>
+  useQuery({ queryKey: qk.followUps, queryFn: api.getUpcomingFollowUps });
+export const useLeadFollowUps = (id: string) =>
+  useQuery({ queryKey: qk.leadFollowUps(id), queryFn: () => api.getLeadFollowUps(id) });
+export const useCrmBoard = () => useQuery({ queryKey: qk.crm, queryFn: api.getCrmBoard });
 export const useCampaigns = () => useQuery({ queryKey: qk.campaigns, queryFn: api.getCampaigns });
-export const useSettings = () => useQuery({ queryKey: qk.settings, queryFn: api.getSettings });
+export const useJobs = () => useQuery({ queryKey: qk.jobs, queryFn: api.getJobs });
+export const useBackendSettings = () =>
+  useQuery({ queryKey: qk.settings, queryFn: api.getBackendSettings });
+export const useCategories = () =>
+  useQuery({ queryKey: qk.categories, queryFn: api.getCategories });
+export const useRegions = () => useQuery({ queryKey: qk.regions, queryFn: api.getRegions });
 
 function useInvalidate() {
   const qc = useQueryClient();
@@ -38,11 +49,11 @@ function useInvalidate() {
     Promise.all(keys.map((queryKey) => qc.invalidateQueries({ queryKey })));
 }
 
-export function usePromoteToCrm() {
+export function usePromoteQualified() {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: api.promoteToCrm,
-    onSuccess: () => invalidate(qk.leads, qk.stats),
+    mutationFn: api.promoteQualified,
+    onSuccess: () => invalidate(qk.crm, qk.leads, qk.stats),
   });
 }
 
@@ -50,15 +61,15 @@ export function useSetCrmStage() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: api.setCrmStage,
-    onSuccess: () => invalidate(qk.leads, qk.stats),
+    onSuccess: () => invalidate(qk.crm, qk.leads, qk.stats),
   });
 }
 
-export function useSetCrmOwner() {
+export function useGenerateDraft() {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: api.setCrmOwner,
-    onSuccess: () => invalidate(qk.leads),
+    mutationFn: api.generateDraft,
+    onSuccess: (draft) => invalidate(qk.drafts(draft.place_id)),
   });
 }
 
@@ -66,16 +77,7 @@ export function useAddInteraction() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: api.addInteraction,
-    onSuccess: (it) => invalidate(qk.interactions(it.leadId), qk.leads),
-  });
-}
-
-export function useGenerateDraft() {
-  const invalidate = useInvalidate();
-  return useMutation({
-    mutationFn: ({ leadId, channel }: { leadId: string; channel: "WHATSAPP" | "INSTAGRAM" }) =>
-      api.generateDraft(leadId, channel),
-    onSuccess: (draft) => invalidate(qk.drafts(draft.leadId)),
+    onSuccess: (it) => invalidate(qk.interactions(it.place_id), qk.leads),
   });
 }
 
@@ -83,7 +85,7 @@ export function useAddFollowUp() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: api.addFollowUp,
-    onSuccess: () => invalidate(qk.followUps, qk.stats),
+    onSuccess: (fu) => invalidate(qk.followUps, qk.leadFollowUps(fu.place_id), qk.stats),
   });
 }
 
@@ -95,35 +97,11 @@ export function useCompleteFollowUp() {
   });
 }
 
-export function useRequestDemo() {
-  const invalidate = useInvalidate();
-  return useMutation({
-    mutationFn: api.requestDemo,
-    onSuccess: () => invalidate(qk.demos, qk.leads, qk.stats),
-  });
-}
-
-export function usePublishDemo() {
-  const invalidate = useInvalidate();
-  return useMutation({
-    mutationFn: api.publishDemo,
-    onSuccess: () => invalidate(qk.demos, qk.stats),
-  });
-}
-
-export function useRerunQa() {
-  const invalidate = useInvalidate();
-  return useMutation({
-    mutationFn: api.rerunQa,
-    onSuccess: () => invalidate(qk.demos),
-  });
-}
-
 export function useCreateCampaign() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: api.createCampaign,
-    onSuccess: () => invalidate(qk.campaigns),
+    onSuccess: () => invalidate(qk.campaigns, qk.jobs),
   });
 }
 
@@ -131,32 +109,30 @@ export function useRunJob() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: api.runJob,
-    onSuccess: () => invalidate(qk.campaigns, qk.settings, qk.leads, qk.stats),
+    onSuccess: () => invalidate(qk.jobs, qk.campaigns, qk.backendStats, qk.stats, qk.leads),
   });
 }
 
-export function useSaveScoreWeights() {
+export function useRunPipeline() {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: api.saveScoreWeights,
-    onSuccess: () => invalidate(qk.settings),
+    mutationFn: api.runPipeline,
+    onSuccess: () => invalidate(qk.leads, qk.stats, qk.backendStats),
   });
 }
 
-export function useAddSetting() {
+export function useAddCategory() {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ kind, value }: { kind: "categories" | "regions"; value: string }) =>
-      api.addSetting(kind, value),
-    onSuccess: () => invalidate(qk.settings),
+    mutationFn: api.addCategory,
+    onSuccess: () => invalidate(qk.categories),
   });
 }
 
-export function useRemoveSetting() {
+export function useAddRegion() {
   const invalidate = useInvalidate();
   return useMutation({
-    mutationFn: ({ kind, value }: { kind: "categories" | "regions"; value: string }) =>
-      api.removeSetting(kind, value),
-    onSuccess: () => invalidate(qk.settings),
+    mutationFn: api.addRegion,
+    onSuccess: () => invalidate(qk.regions),
   });
 }

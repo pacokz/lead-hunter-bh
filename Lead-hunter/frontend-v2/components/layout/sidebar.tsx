@@ -75,7 +75,7 @@ export function Sidebar() {
 
       <div className="border-t border-carbon-line px-5 py-4">
         <p className="text-[10px] leading-relaxed text-carbon-muted">
-          Ferramenta interna · dados mock
+          Ferramenta interna de prospecção
           <br />
           <span className="text-carbon-muted/70">Balmor © 2026</span>
         </p>

@@ -1,13 +1,4 @@
-// Contratos espelhando o backend FastAPI (estubados — ver lib/api.ts).
-
-export type OperatorId = "samuel" | "jose";
-
-export interface Operator {
-  id: OperatorId;
-  name: string;
-  shortName: string;
-  initials: string;
-}
+// Tipos de visão da UI + contratos crus do backend FastAPI.
 
 export type ScoreBand =
   | "PRIORIDADE"
@@ -39,173 +30,190 @@ export type CrmStage =
 
 export type IssueSeverity = "ALTA" | "MEDIA" | "BAIXA";
 
-export interface ScoreComponent {
-  key: string;
-  label: string;
-  points: number;
-  max: number;
-  hint: string;
+// ---------------------------------------------------------------- lista
+
+export interface RankedLead {
+  place_id: string;
+  name: string;
+  category: string | null;
+  rating: number | null;
+  reviews_count: number | null;
+  site_class: SiteCategory | null;
+  score: number;
+  band: ScoreBand;
+  phone: string | null;
+  instagram_handle: string | null;
+  contacted: boolean;
+  last_contact_at: string | null;
+  stage: CrmStage | null;
 }
 
-export interface Score {
-  total: number;
-  band: ScoreBand;
-  components: ScoreComponent[];
-  computedAt: string;
+// ---------------------------------------------------------------- detalhe
+
+export interface ScoreComponent {
+  component: string;
+  weight: number;
+  value: number;
 }
 
 export interface AuditIssue {
-  severity: IssueSeverity;
-  label: string;
+  type: string;
+  severity: string | null;
+  description: string | null;
 }
 
-export interface SiteAudit {
-  category: SiteCategory;
-  url?: string;
-  instagram?: string;
-  hasWhatsapp: boolean;
-  issues: AuditIssue[];
-  auditedAt: string;
+export interface LeadContext {
+  place: {
+    place_id: string;
+    name: string;
+    category: string | null;
+    address: string | null;
+    phone: string | null;
+    website: string | null;
+    rating: number | null;
+    reviews_count: number | null;
+    instagram_handle: string | null;
+    google_maps_uri: string | null;
+    business_status: string | null;
+  };
+  pipeline_state: string | null;
+  audit: {
+    site_class: SiteCategory;
+    https: boolean | null;
+    responsive: boolean | null;
+    http_status: number | null;
+    final_url: string | null;
+    response_time_s: number | null;
+    title: string | null;
+    meta_description: string | null;
+    has_form: boolean | null;
+    has_whatsapp: boolean | null;
+    social_links: string[] | null;
+    issues: AuditIssue[];
+    screenshots: { viewport: string; path: string }[];
+  } | null;
+  score: {
+    score: number;
+    band: ScoreBand;
+    components: ScoreComponent[];
+  } | null;
 }
 
-export interface CrmInfo {
-  stage: CrmStage;
-  owner: OperatorId;
-  promotedBy: OperatorId;
-  promotedAt: string;
-  stageChangedAt: string;
-}
+// ---------------------------------------------------------------- crm
 
-export interface Lead {
-  id: string;
-  placeId: string;
+export interface CrmCard {
+  place_id: string;
   name: string;
-  category: string;
-  region: string;
-  rating: number;
-  reviews: number;
-  phone?: string;
-  address: string;
-  score?: Score;
-  audit?: SiteAudit;
-  crm?: CrmInfo;
-  demoId?: string;
-  foundAt: string;
+  stage: CrmStage;
+  score: number | null;
+  band: ScoreBand | null;
+  site_class: SiteCategory | null;
+  phone: string | null;
+  instagram_handle: string | null;
 }
 
-export type InteractionKind = "WHATSAPP" | "INSTAGRAM" | "LIGACAO" | "NOTA";
-
-export interface Interaction {
-  id: string;
-  leadId: string;
-  kind: InteractionKind;
-  note: string;
-  by: OperatorId;
-  at: string;
-}
+// ---------------------------------------------------------------- outreach / atividade
 
 export interface OutreachDraft {
-  id: string;
-  leadId: string;
-  channel: "WHATSAPP" | "INSTAGRAM";
+  id: number;
+  place_id: string;
+  channel: "WHATSAPP" | "INSTAGRAM" | "EMAIL";
   text: string;
-  generatedAt: string;
+  status: string;
+}
+
+export interface Interaction {
+  id: number;
+  place_id: string;
+  channel: string | null;
+  direction: string | null;
+  content: string | null;
+  created_at: string | null;
 }
 
 export interface FollowUp {
-  id: string;
-  leadId: string;
-  leadName: string;
-  dueAt: string;
-  note: string;
-  owner: OperatorId;
-  createdBy: OperatorId;
+  id: number;
+  place_id: string;
+  type: string;
+  scheduled_at: string | null;
+  note: string | null;
   done: boolean;
-  doneBy?: OperatorId;
-  doneAt?: string;
+  done_at: string | null;
 }
 
-export type DemoStatus = "RASCUNHO" | "EM_QA" | "APROVADA" | "PUBLICADA";
-
-export type QaSeverity = "BLOCKER" | "MAJOR" | "MINOR";
-
-export interface QaIssue {
-  severity: QaSeverity;
-  viewport: "desktop" | "tablet" | "mobile";
-  description: string;
+export interface FollowUpAgenda extends FollowUp {
+  place_name: string | null;
 }
 
-export interface DemoQa {
-  checkedAt: string;
-  craftScore: number;
-  issues: QaIssue[];
-}
+// ---------------------------------------------------------------- campanhas
 
-export interface Demo {
-  id: string;
-  leadId: string;
-  leadName: string;
-  slug: string;
-  status: DemoStatus;
-  publishedUrl?: string;
-  qa?: DemoQa;
-  createdBy: OperatorId;
-  createdAt: string;
-  themeSeed: number;
-}
-
-export type JobStatus = "PENDENTE" | "EXECUTANDO" | "CONCLUIDO" | "ERRO";
-
-export interface SearchJob {
-  id: string;
-  campaignId: string;
-  page: number;
-  status: JobStatus;
-  found: number;
-  newLeads: number;
-  executedAt?: string;
-  error?: string;
-}
-
-export type CampaignStatus = "ATIVA" | "CONCLUIDA" | "PAUSADA";
+export type CampaignStatus = "DRAFT" | "RUNNING" | "PAUSED" | "DONE";
+export type JobStatus = "PENDING" | "RUNNING" | "DONE" | "ERROR";
 
 export interface Campaign {
-  id: string;
-  category: string;
-  region: string;
-  term: string;
+  id: number;
+  name: string;
+  category: string | null;
   status: CampaignStatus;
-  createdBy: OperatorId;
-  createdAt: string;
-  jobs: SearchJob[];
+  max_pages: number;
 }
 
-export interface Quota {
-  dailyUsed: number;
-  dailyLimit: number;
-  monthlyUsed: number;
-  monthlyLimit: number;
+export interface SearchJob {
+  id: number;
+  campaign_id: number;
+  term: string;
+  region: string;
+  page: number;
+  status: JobStatus;
+  attempts: number;
+  results_count: number;
+  error: string | null;
+}
+
+// ---------------------------------------------------------------- stats / settings
+
+export interface BackendStats {
+  total_places: number;
+  by_site_class: Record<string, number>;
+  by_band: Record<string, number>;
+  sem_site: number;
+  sites_ruins: number;
+  prioritarios: number;
+  audited: number;
+  scored: number;
+  campaigns: number;
+  jobs_error: number;
+  api_today: number;
+  api_month: number;
+}
+
+export interface BackendSettings {
+  app_env: string;
+  api_daily_limit: number;
+  api_monthly_limit: number;
+  min_rating: number;
+  min_reviews: number;
+  min_score: number;
+  google_key_set: boolean;
+}
+
+export interface Category {
+  id: number;
+  name: string;
+  priority: number;
+  active: boolean;
+}
+
+export interface Region {
+  id: number;
+  name: string;
+  active: boolean;
 }
 
 export interface DashboardStats {
   leadsFound: number;
   leadsAudited: number;
+  prioritarios: number;
   inCrm: number;
-  demosReady: number;
   followUpsToday: number;
-}
-
-export interface ScoreWeights {
-  siteOpportunity: number;
-  reviews: number;
-  rating: number;
-  contact: number;
-  segment: number;
-}
-
-export interface AppSettings {
-  quota: Quota;
-  scoreWeights: ScoreWeights;
-  categories: string[];
-  regions: string[];
 }
