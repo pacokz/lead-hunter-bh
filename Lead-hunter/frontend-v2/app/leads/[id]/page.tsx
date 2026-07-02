@@ -44,10 +44,11 @@ import {
   useLeadContext,
   useLeadFollowUps,
   useMe,
-  usePromoteQualified,
+  usePromoteSingle,
   useSetCrmOwner,
   useSetCrmStage,
 } from "@/lib/queries";
+import { API } from "@/lib/api";
 import { OperatorAvatar, OperatorTag } from "@/components/domain/operator";
 import { operatorById } from "@/lib/operators";
 import { CRM_STAGE_ORDER, CRM_STAGES, SCORE_COMPONENT_LABELS } from "@/lib/domain";
@@ -312,6 +313,37 @@ function AuditCard({ ctx }: { ctx: LeadContext }) {
           ) : (
             <p className="text-sm text-ink-muted">Nenhum problema registrado.</p>
           )}
+
+          {audit.screenshots.length > 0 && (
+            <div className="mt-4">
+              <p className="mb-2 text-xs font-medium text-ink-muted">
+                Screenshots da auditoria (site atual do lead)
+              </p>
+              <div className="flex flex-wrap gap-3">
+                {audit.screenshots.map((s) => (
+                  <a
+                    key={s.viewport}
+                    href={`${API}${s.path}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={`Abrir screenshot ${s.viewport} em tamanho real`}
+                    className={cn(
+                      "block overflow-hidden rounded-ctrl border border-line bg-paper transition-shadow hover:shadow-pop",
+                      s.viewport === "mobile" ? "w-28" : "min-w-0 flex-1 basis-56"
+                    )}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`${API}${s.path}`}
+                      alt={`Screenshot ${s.viewport} do site atual`}
+                      className="max-h-44 w-full object-cover object-top"
+                      loading="lazy"
+                    />
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </Card>
@@ -437,7 +469,7 @@ function CrmCard({ placeId }: { placeId: string }) {
   const board = useCrmBoard();
   const setStage = useSetCrmStage();
   const setOwner = useSetCrmOwner();
-  const promote = usePromoteQualified();
+  const promote = usePromoteSingle();
   const me = useMe();
   const { toast } = useToast();
 
@@ -458,18 +490,18 @@ function CrmCard({ placeId }: { placeId: string }) {
           className="py-8"
           icon={<KanbanSquare className="h-5 w-5" aria-hidden />}
           title="Fora do CRM"
-          description="O promover em massa move todos os leads ALTO POTENCIAL e PRIORIDADE pro CRM."
+          description="Promova este lead pra começar a trabalhar a abordagem."
           action={
             <Button
               size="sm"
               variant="primary"
               loading={promote.isPending}
               onClick={async () => {
-                const res = await promote.mutateAsync(me.data?.operator?.id ?? null);
-                toast("success", `${res.promoted} lead(s) promovido(s)`);
+                await promote.mutateAsync({ placeId, by: me.data?.operator?.id ?? null });
+                toast("success", "Lead promovido pro CRM (Novo)");
               }}
             >
-              Promover qualificados
+              Promover este lead
             </Button>
           }
         />

@@ -238,6 +238,8 @@ export interface Demo {
   screenshots: Partial<Record<"desktop" | "tablet" | "mobile", string>>;
   preview_path: string | null;
   updated_at: string | null;
+  place_id: string | null;
+  lead_name: string | null;
 }
 
 // ---------------------------------------------------------------- identidade

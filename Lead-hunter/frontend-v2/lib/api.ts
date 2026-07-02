@@ -21,7 +21,7 @@ import type {
   SearchJob,
 } from "./types";
 
-const API = process.env.NEXT_PUBLIC_API_URL || "/backend-api";
+export const API = process.env.NEXT_PUBLIC_API_URL || "/backend-api";
 
 async function getJSON<T>(path: string): Promise<T> {
   const r = await fetch(`${API}${path}`);
@@ -87,6 +87,12 @@ export const promoteQualified = (by?: string | null) =>
     `/crm/promote${by ? `?by=${encodeURIComponent(by)}` : ""}`
   );
 
+export const promoteSingle = (input: { placeId: string; by?: string | null }) =>
+  send<CrmCard>(
+    "POST",
+    `/leads/${encodeURIComponent(input.placeId)}/crm/promote${input.by ? `?by=${encodeURIComponent(input.by)}` : ""}`
+  );
+
 export const setCrmStage = (input: { placeId: string; stage: CrmStage }) =>
   send<CrmCard>(
     "POST",
@@ -130,6 +136,9 @@ export const addInteraction = (input: {
 
 export const getUpcomingFollowUps = () =>
   getJSON<FollowUpAgenda[]>("/follow-ups/upcoming?limit=200");
+
+export const getFollowUpsHistory = () =>
+  getJSON<FollowUpAgenda[]>("/follow-ups/history?limit=200");
 
 export const getLeadFollowUps = (placeId: string) =>
   getJSON<FollowUp[]>(`/leads/${encodeURIComponent(placeId)}/follow-ups`);

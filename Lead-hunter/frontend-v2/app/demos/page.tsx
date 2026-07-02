@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import {
   ExternalLink,
   ImageOff,
@@ -78,7 +79,19 @@ function DemoCard({ demo }: { demo: Demo }) {
       <div className="flex items-start justify-between gap-2 px-4 pt-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <h2 className="truncate font-display text-sm font-semibold text-ink">{demo.name}</h2>
+            <h2 className="truncate font-display text-sm font-semibold text-ink">
+              {demo.place_id ? (
+                <Link
+                  href={`/leads/${encodeURIComponent(demo.place_id)}`}
+                  className="hover:text-violet-600"
+                  title={`Abrir o lead ${demo.lead_name ?? demo.name}`}
+                >
+                  {demo.name}
+                </Link>
+              ) : (
+                demo.name
+              )}
+            </h2>
             <Badge className={status.className}>{status.label}</Badge>
           </div>
           <p className="mt-0.5 flex items-center gap-1.5 text-xs text-ink-muted">

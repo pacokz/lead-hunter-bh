@@ -187,6 +187,14 @@ class DemoOut(BaseModel):
     screenshots: dict[str, str] = {}
     preview_path: str | None = None
     updated_at: datetime | None = None
+    place_id: str | None = None
+    lead_name: str | None = None
+
+
+class DemoRegisterIn(BaseModel):
+    slug: str
+    place_id: str | None = None
+    published_url: str | None = None
 
 
 class OutreachDraftOut(BaseModel):

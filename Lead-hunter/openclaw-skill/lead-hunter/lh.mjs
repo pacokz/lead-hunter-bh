@@ -369,6 +369,8 @@ const run = {
     const slug = slugify(p.name);
     const dir = resolve(ROOT, slug);
     mkdirSync(dir, { recursive: true });
+    // vínculo demo->lead: o demo-publicar lê isso pra registrar no backend
+    writeFileSync(resolve(dir, "lead.json"), JSON.stringify({ place_id: rest[0], nome: p.name, slug }, null, 2));
     if (existsSync(resolve(dir, "index.html"))) {
       console.log(`\n>>> JA EXISTE uma demo pra "${p.name}" em ${resolve(dir, "index.html")}`);
       console.log(`>>> CONFIRME com o Samuel: REGERAR do zero, so PUBLICAR a atual, ou AJUSTAR? Nao refaca sem confirmar.\n`);
@@ -411,6 +413,7 @@ const run = {
     const slug = slugify(ctx.place && ctx.place.name);
     const dir = resolve(ROOT, slug);
     mkdirSync(dir, { recursive: true });
+    writeFileSync(resolve(dir, "lead.json"), JSON.stringify({ place_id: rest[0], nome: ctx.place && ctx.place.name, slug }, null, 2));
     if (existsSync(resolve(dir, "index.html")) && !flags.force)
       console.log(`>>> JA EXISTE demo pra esse lead em ${resolve(dir, "index.html")} — confirme se quer REGERAR ou so PUBLICAR (use --force pra regerar sem aviso).`);
 
@@ -510,6 +513,17 @@ const run = {
     console.log(`\nPUBLICADO ✅`);
     console.log(`  Link ao vivo: ${url}`);
     console.log(`  Mande esse link no WhatsApp do lead (a prévia abre no celular dele).`);
+    // registra no backend: vincula demo->lead e move o CRM pra DEMO_PRONTA (best-effort)
+    try {
+      let placeId = null;
+      const leadPath = resolve(dir, "lead.json");
+      if (existsSync(leadPath)) placeId = JSON.parse(readFileSync(leadPath, "utf8")).place_id || null;
+      const reg = await api("POST", "/demos/register", { slug, place_id: placeId, published_url: url });
+      if (reg.registered) console.log(`  Registrado no Lead Hunter${reg.crm_moved ? " (CRM -> Demo pronta)" : ""}.`);
+      else console.log(`  (nao vinculado a lead: ${reg.reason || "sem place_id"} — gere via demo-data pra vincular)`);
+    } catch (e) {
+      console.log(`  (aviso: nao consegui registrar no backend: ${e.message})`);
+    }
   },
   async crm() {
     const c = await api("GET", "/crm");

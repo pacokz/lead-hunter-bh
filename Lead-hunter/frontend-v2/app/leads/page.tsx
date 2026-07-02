@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   CheckCircle2,
+  ChevronLeft,
   ChevronRight,
   Instagram,
   KanbanSquare,
@@ -23,13 +24,20 @@ import { EmptyState, ErrorState, TableSkeleton } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { CrmStageBadge, ScoreBandBadge, SiteCategoryBadge } from "@/components/domain/badges";
 import { Rating } from "@/components/domain/rating";
-import { useCampaigns, useLeads, useMe, usePromoteQualified } from "@/lib/queries";
+import {
+  useCampaigns,
+  useLeads,
+  useMe,
+  usePromoteQualified,
+  usePromoteSingle,
+} from "@/lib/queries";
 import { SCORE_BANDS, SITE_CATEGORIES } from "@/lib/domain";
 import { fmtDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { RankedLead, ScoreBand, SiteCategory } from "@/lib/types";
 
 const ALL = "__all__";
+const PAGE_SIZE = 50;
 type ContactTab = "all" | "todo" | "contacted";
 
 export default function LeadsPage() {
@@ -37,6 +45,7 @@ export default function LeadsPage() {
   const campaigns = useCampaigns();
   const me = useMe();
   const promote = usePromoteQualified();
+  const promoteSingle = usePromoteSingle();
   const { toast } = useToast();
   const router = useRouter();
 
@@ -46,6 +55,12 @@ export default function LeadsPage() {
   const [band, setBand] = useState(ALL);
   const [site, setSite] = useState(ALL);
   const [crmFilter, setCrmFilter] = useState(ALL);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    setPage(1);
+  }, [tab, search, category, band, site, crmFilter]);
 
   const hasFilters = search !== "" || [category, band, site, crmFilter].some((f) => f !== ALL);
 
@@ -81,6 +96,46 @@ export default function LeadsPage() {
       : tab === "todo"
         ? toContact
         : base;
+
+  const totalPages = Math.max(1, Math.ceil(rows.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageRows = rows.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const selectable = pageRows.filter((l) => !l.stage);
+  const allSelected = selectable.length > 0 && selectable.every((l) => selected.has(l.place_id));
+
+  function toggleAll() {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (allSelected) selectable.forEach((l) => next.delete(l.place_id));
+      else selectable.forEach((l) => next.add(l.place_id));
+      return next;
+    });
+  }
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  async function promoteSelected() {
+    const ids = [...selected];
+    let ok = 0;
+    for (const placeId of ids) {
+      try {
+        await promoteSingle.mutateAsync({ placeId, by: me.data?.operator?.id ?? null });
+        ok += 1;
+      } catch {
+        // segue os demais; o toast final mostra o total
+      }
+    }
+    setSelected(new Set());
+    toast(ok > 0 ? "success" : "error", `${ok} de ${ids.length} promovido${ids.length > 1 ? "s" : ""} pro CRM`);
+  }
 
   function clearFilters() {
     setSearch("");
@@ -175,6 +230,21 @@ export default function LeadsPage() {
           </span>
         </div>
 
+        {selected.size > 0 && (
+          <div className="flex items-center gap-3 border-b border-violet-200 bg-violet-50 px-4 py-2 animate-fade-up">
+            <p className="tnum text-sm font-medium text-violet-700">
+              {selected.size} selecionado{selected.size > 1 ? "s" : ""}
+            </p>
+            <Button variant="primary" size="sm" loading={promoteSingle.isPending} onClick={promoteSelected}>
+              <KanbanSquare className="h-3.5 w-3.5" aria-hidden />
+              Promover selecionados
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
+              Cancelar
+            </Button>
+          </div>
+        )}
+
         {leads.isPending ? (
           <TableSkeleton rows={10} cols={6} />
         ) : leads.isError ? (
@@ -198,37 +268,100 @@ export default function LeadsPage() {
             }
           />
         ) : (
-          <Table>
-            <thead>
-              <tr>
-                <Th className="w-16">Score</Th>
-                <Th>Negócio</Th>
-                <Th>Site</Th>
-                <Th>Reputação</Th>
-                <Th>Contato</Th>
-                <Th>CRM</Th>
-                <Th className="w-8"><span className="sr-only">Abrir</span></Th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((lead) => (
-                <LeadRow
-                  key={lead.place_id}
-                  lead={lead}
-                  onOpen={() => router.push(`/leads/${encodeURIComponent(lead.place_id)}`)}
-                />
-              ))}
-            </tbody>
-          </Table>
+          <>
+            <Table>
+              <thead>
+                <tr>
+                  <Th className="w-8">
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      onChange={toggleAll}
+                      aria-label="Selecionar leads fora do CRM desta página"
+                      className="accent-violet-500"
+                    />
+                  </Th>
+                  <Th className="w-16">Score</Th>
+                  <Th>Negócio</Th>
+                  <Th>Site</Th>
+                  <Th>Reputação</Th>
+                  <Th>Contato</Th>
+                  <Th>CRM</Th>
+                  <Th className="w-8"><span className="sr-only">Abrir</span></Th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((lead) => (
+                  <LeadRow
+                    key={lead.place_id}
+                    lead={lead}
+                    checked={selected.has(lead.place_id)}
+                    onToggle={() => toggle(lead.place_id)}
+                    onOpen={() => router.push(`/leads/${encodeURIComponent(lead.place_id)}`)}
+                  />
+                ))}
+              </tbody>
+            </Table>
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between border-t border-line-soft px-4 py-2.5">
+                <p className="tnum text-xs text-ink-muted">
+                  Página {safePage} de {totalPages} · {rows.length} leads
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={safePage <= 1}
+                    onClick={() => setPage(safePage - 1)}
+                    aria-label="Página anterior"
+                  >
+                    <ChevronLeft className="h-4 w-4" aria-hidden />
+                    Anterior
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    disabled={safePage >= totalPages}
+                    onClick={() => setPage(safePage + 1)}
+                    aria-label="Próxima página"
+                  >
+                    Próxima
+                    <ChevronRight className="h-4 w-4" aria-hidden />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </Card>
     </div>
   );
 }
 
-function LeadRow({ lead, onOpen }: { lead: RankedLead; onOpen: () => void }) {
+function LeadRow({
+  lead,
+  checked,
+  onToggle,
+  onOpen,
+}: {
+  lead: RankedLead;
+  checked: boolean;
+  onToggle: () => void;
+  onOpen: () => void;
+}) {
   return (
     <Tr className="cursor-pointer" onClick={onOpen}>
+      <Td onClick={(e) => e.stopPropagation()}>
+        <input
+          type="checkbox"
+          checked={checked}
+          disabled={!!lead.stage}
+          onChange={onToggle}
+          aria-label={`Selecionar ${lead.name}`}
+          title={lead.stage ? "Já está no CRM" : undefined}
+          className="accent-violet-500 disabled:opacity-30"
+        />
+      </Td>
       <Td>
         <span
           className={cn(

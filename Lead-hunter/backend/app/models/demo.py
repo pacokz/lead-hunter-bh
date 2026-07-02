@@ -14,6 +14,8 @@ class DemoProject(TimestampMixin, Base):
     )
     status: Mapped[str] = mapped_column(String(40), default="PENDING", nullable=False)
     reference_used: Mapped[str | None] = mapped_column(Text)
+    slug: Mapped[str | None] = mapped_column(String(160), index=True)
+    published_url: Mapped[str | None] = mapped_column(Text)
 
 
 class DemoVersion(TimestampMixin, Base):

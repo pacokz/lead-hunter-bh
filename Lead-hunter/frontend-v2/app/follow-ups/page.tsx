@@ -1,23 +1,28 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { CalendarCheck2, CheckCircle2 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Tabs } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
 import { useToast } from "@/components/ui/toast";
 import { OperatorAvatar } from "@/components/domain/operator";
-import { useCompleteFollowUp, useFollowUps } from "@/lib/queries";
+import { useCompleteFollowUp, useFollowUps, useFollowUpsHistory } from "@/lib/queries";
 import { fmtDateTime, fmtWeekday, isOverdue, isToday } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { FollowUpAgenda } from "@/lib/types";
 
+type Tab = "pending" | "done";
+
 export default function FollowUpsPage() {
   const followUps = useFollowUps();
+  const history = useFollowUpsHistory();
   const complete = useCompleteFollowUp();
   const { toast } = useToast();
+  const [tab, setTab] = useState<Tab>("pending");
 
   const pending = useMemo(
     () => (followUps.data ?? []).filter((f) => !f.done),
@@ -49,7 +54,19 @@ export default function FollowUpsPage() {
         description="Agenda global dos próximos contatos — nada de lead esquecido. Agende novos no detalhe do lead."
       />
 
-      {followUps.isPending ? (
+      <Tabs
+        value={tab}
+        onChange={setTab}
+        options={[
+          { value: "pending", label: "Pendentes", count: pending.length },
+          { value: "done", label: "Concluídos", count: history.data?.length },
+        ]}
+        className="mb-4"
+      />
+
+      {tab === "done" ? (
+        <HistoryList history={history} />
+      ) : followUps.isPending ? (
         <div className="space-y-2">
           {Array.from({ length: 5 }).map((_, i) => (
             <Skeleton key={i} className="h-16 w-full rounded-card" />
@@ -137,6 +154,60 @@ export default function FollowUpsPage() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function HistoryList({ history }: { history: ReturnType<typeof useFollowUpsHistory> }) {
+  if (history.isPending) {
+    return (
+      <div className="space-y-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-14 w-full rounded-card" />
+        ))}
+      </div>
+    );
+  }
+  if (history.isError) {
+    return <ErrorState message={String(history.error)} onRetry={() => history.refetch()} />;
+  }
+  if (history.data.length === 0) {
+    return (
+      <Card>
+        <EmptyState
+          icon={<CalendarCheck2 className="h-5 w-5" aria-hidden />}
+          title="Nada concluído ainda"
+          description="Os follow-ups marcados como feitos aparecem aqui."
+        />
+      </Card>
+    );
+  }
+  return (
+    <div className="space-y-2">
+      {history.data.map((fu) => (
+        <Card key={fu.id} className="flex items-center gap-4 px-4 py-3">
+          <div className="w-24 shrink-0">
+            <p className="tnum text-sm font-semibold text-ink">
+              {fu.done_at ? fmtWeekday(fu.done_at) : "—"}
+            </p>
+            <p className="text-2xs text-ink-muted">concluído</p>
+          </div>
+          <div className="min-w-0 flex-1">
+            <Link
+              href={`/leads/${encodeURIComponent(fu.place_id)}`}
+              className="text-sm font-semibold text-ink hover:text-violet-600"
+            >
+              {fu.place_name ?? fu.place_id}
+            </Link>
+            <p className="truncate text-xs text-ink-muted">{fu.note ?? fu.type}</p>
+          </div>
+          {fu.created_by && <OperatorAvatar id={fu.created_by} className="shrink-0" />}
+          <p className="flex shrink-0 items-center gap-1.5 text-xs text-ok">
+            <CheckCircle2 className="h-4 w-4" aria-hidden />
+            Feito
+          </p>
+        </Card>
+      ))}
     </div>
   );
 }

@@ -10,6 +10,7 @@ from app.enums import CommercialStage, ContactChannel, JobStatus
 from app.models.audit import SiteAudit, SiteAuditIssue, SiteScreenshot
 from app.models.config import Category, Region
 from app.models.crm import CommercialPipeline, FollowUp, Interaction
+from app.models.demo import DemoProject
 from app.models.pipeline import LeadPipeline, LeadScore, LeadScoreComponent
 from app.models.places import Place, SearchCampaign, SearchJob
 from app.schemas.places import (
@@ -20,6 +21,7 @@ from app.schemas.places import (
     CategoryOut,
     CrmCardOut,
     DemoOut,
+    DemoRegisterIn,
     FollowUpAgendaOut,
     FollowUpCreate,
     FollowUpOut,
@@ -157,6 +159,36 @@ def crm_board(session: Session = Depends(get_session)):
             )
         )
     return cards
+
+
+@router.post("/leads/{place_id}/crm/promote", response_model=CrmCardOut)
+def promote_single(place_id: str, by: str | None = None, session: Session = Depends(get_session)):
+    """Promove UM lead específico pro CRM (estágio NOVO), independente da banda."""
+    place = session.get(Place, place_id)
+    if place is None:
+        raise HTTPException(status_code=404, detail="Lead não encontrado.")
+    cp = session.scalar(
+        select(CommercialPipeline).where(CommercialPipeline.place_id == place_id)
+    )
+    if cp is None:
+        cp = CommercialPipeline(place_id=place_id, stage=CommercialStage.NOVO, owner=by)
+        session.add(cp)
+        session.commit()
+        session.refresh(cp)
+    score = session.scalar(
+        select(LeadScore).where(LeadScore.place_id == place_id).order_by(LeadScore.id.desc())
+    )
+    return CrmCardOut(
+        place_id=place.place_id,
+        name=place.name,
+        stage=cp.stage.value,
+        score=score.score if score else None,
+        band=score.band.value if score else None,
+        site_class=None,
+        phone=place.phone,
+        instagram_handle=place.instagram_handle,
+        owner=cp.owner,
+    )
 
 
 @router.post("/leads/{place_id}/crm/owner", response_model=CrmCardOut)
@@ -366,6 +398,40 @@ def delete_followup(followup_id: int, session: Session = Depends(get_session)):
     return {"deleted": followup_id}
 
 
+@router.get("/follow-ups/history", response_model=list[FollowUpAgendaOut])
+def followups_history(limit: int = 100, session: Session = Depends(get_session)):
+    """Follow-ups concluídos, mais recentes primeiro."""
+    rows = list(
+        session.scalars(
+            select(FollowUp)
+            .where(FollowUp.done.is_(True))
+            .order_by(FollowUp.done_at.desc().nulls_last())
+            .limit(limit)
+        )
+    )
+    names = dict(
+        session.execute(
+            select(Place.place_id, Place.name).where(
+                Place.place_id.in_([f.place_id for f in rows] or [""])
+            )
+        ).all()
+    )
+    return [
+        {
+            "id": f.id,
+            "place_id": f.place_id,
+            "place_name": names.get(f.place_id),
+            "type": f.type,
+            "scheduled_at": f.scheduled_at,
+            "note": f.note,
+            "done": f.done,
+            "done_at": f.done_at,
+            "created_by": f.created_by,
+        }
+        for f in rows
+    ]
+
+
 @router.get("/follow-ups/upcoming", response_model=list[FollowUpAgendaOut])
 def upcoming_followups(limit: int = 100, session: Session = Depends(get_session)):
     rows = followup_service.upcoming(session, limit=limit)
@@ -395,8 +461,41 @@ def upcoming_followups(limit: int = 100, session: Session = Depends(get_session)
 # ---- Demos (geradas pelos agentes; fonte = pasta demos-shared montada) ------
 
 
+@router.post("/demos/register")
+def register_demo(payload: DemoRegisterIn, session: Session = Depends(get_session)):
+    """Chamado pelo demo-publicar (lh.mjs) ao publicar: vincula demo→lead e
+    move o card do CRM pra DEMO_PRONTA (se ainda estiver no começo do funil)."""
+    demo = session.scalar(select(DemoProject).where(DemoProject.slug == payload.slug))
+    place_id = payload.place_id or (demo.place_id if demo else None)
+    if place_id and session.get(Place, place_id) is None:
+        place_id = None
+
+    if demo is None:
+        if not place_id:
+            return {"registered": False, "reason": "sem place_id — demo não vinculada a lead"}
+        demo = DemoProject(place_id=place_id, slug=payload.slug)
+        session.add(demo)
+
+    if payload.published_url:
+        demo.published_url = payload.published_url
+        demo.status = "PUBLISHED"
+
+    crm_moved = False
+    if place_id:
+        demo.place_id = place_id
+        cp = session.scalar(
+            select(CommercialPipeline).where(CommercialPipeline.place_id == place_id)
+        )
+        if cp and cp.stage in (CommercialStage.NOVO, CommercialStage.QUALIFICADO):
+            cp.stage = CommercialStage.DEMO_PRONTA
+            crm_moved = True
+
+    session.commit()
+    return {"registered": True, "place_id": place_id, "crm_moved": crm_moved}
+
+
 @router.get("/demos", response_model=list[DemoOut])
-def list_demos():
+def list_demos(session: Session = Depends(get_session)):
     import json as _json
     from datetime import datetime, timezone
     from pathlib import Path
@@ -404,6 +503,15 @@ def list_demos():
     root = Path(settings.demos_container_dir)
     if not root.is_dir():
         return []
+
+    # vínculo demo→lead registrado no banco (via demo-publicar)
+    links: dict[str, tuple[str, str | None]] = {}
+    for dp, pname in session.execute(
+        select(DemoProject, Place.name)
+        .outerjoin(Place, Place.place_id == DemoProject.place_id)
+        .where(DemoProject.slug.is_not(None))
+    ).all():
+        links[dp.slug] = (dp.place_id, pname)
 
     out: list[DemoOut] = []
     for d in root.iterdir():
@@ -462,6 +570,7 @@ def list_demos():
         except OSError:
             updated_at = None
 
+        link = links.get(d.name)
         out.append(
             DemoOut(
                 slug=d.name,
@@ -476,6 +585,8 @@ def list_demos():
                 screenshots=shots,
                 preview_path=f"/demos-files/{d.name}/index.html" if has_index else None,
                 updated_at=updated_at,
+                place_id=link[0] if link else None,
+                lead_name=link[1] if link else None,
             )
         )
 

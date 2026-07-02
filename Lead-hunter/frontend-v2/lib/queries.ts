@@ -13,6 +13,7 @@ export const qk = {
   drafts: (id: string) => ["drafts", id] as const,
   interactions: (id: string) => ["interactions", id] as const,
   followUps: ["follow-ups"] as const,
+  followUpsHistory: ["follow-ups-history"] as const,
   leadFollowUps: (id: string) => ["lead-follow-ups", id] as const,
   crm: ["crm"] as const,
   campaigns: ["campaigns"] as const,
@@ -37,6 +38,8 @@ export const useInteractions = (id: string) =>
   useQuery({ queryKey: qk.interactions(id), queryFn: () => api.getInteractions(id) });
 export const useFollowUps = () =>
   useQuery({ queryKey: qk.followUps, queryFn: api.getUpcomingFollowUps });
+export const useFollowUpsHistory = () =>
+  useQuery({ queryKey: qk.followUpsHistory, queryFn: api.getFollowUpsHistory });
 export const useLeadFollowUps = (id: string) =>
   useQuery({ queryKey: qk.leadFollowUps(id), queryFn: () => api.getLeadFollowUps(id) });
 export const useCrmBoard = () => useQuery({ queryKey: qk.crm, queryFn: api.getCrmBoard });
@@ -66,6 +69,14 @@ export function useSetCrmStage() {
   const invalidate = useInvalidate();
   return useMutation({
     mutationFn: api.setCrmStage,
+    onSuccess: () => invalidate(qk.crm, qk.leads, qk.stats),
+  });
+}
+
+export function usePromoteSingle() {
+  const invalidate = useInvalidate();
+  return useMutation({
+    mutationFn: api.promoteSingle,
     onSuccess: () => invalidate(qk.crm, qk.leads, qk.stats),
   });
 }
