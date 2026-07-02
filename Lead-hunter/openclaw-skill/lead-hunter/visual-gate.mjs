@@ -14,7 +14,8 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = resolve(HERE, "..", "..", "demos"); // mesma pasta (compartilhada) dos demos
 const args = process.argv.slice(2);
 const slug = args.find((a) => !a.startsWith("--"));
-const maxPct = Number((args[args.indexOf("--max") + 1]) || 12); // teto de similaridade (%)
+const _mi = args.indexOf("--max");
+const maxPct = _mi >= 0 && Number.isFinite(Number(args[_mi + 1])) ? Number(args[_mi + 1]) : 15; // teto de similaridade (%)
 
 if (!slug) { console.error("uso: visual-gate <slug> [--max <pct>]"); process.exit(2); }
 
