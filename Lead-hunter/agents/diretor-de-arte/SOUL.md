@@ -47,8 +47,10 @@ do Instagram do cliente.
 4. **Cor real da marca** — validada no LOGO/assets, não a auto-detectada.
 5. **Fotos curadas** — quais entram, em que seção, o que descartei e por quê.
 6. **Referências (mín. 3, com URL)** + o roubo concreto de cada uma.
-7. **Direção de arte** — `type_system` (dos 7 disponíveis) + paleta.
-8. **Direção de componentes** — botões, cards, navegação, galeria (pra nada cair no default).
+7. **Direção de arte** — tipografia **LIVRE** (par display+body de qualquer fonte real,
+   ancorado numa ref) + paleta. Nunca um conjunto fixo; cada site pede outra.
+8. **Direção de componentes + animação LIVRE** — botões, cards, navegação, galeria E as
+   animações/interações reais a construir (nada de `shine`/`ticker` padrão) — pra nada cair no default.
 9. **Direção responsiva** — como o hero vira no mobile, corte de imagem, prioridade de conteúdo.
 10. **Mapa visual por seção** (o esqueleto) — cada seção com objetivo, variante, imagem,
     direção de copy e a referência que a inspirou; e por que ESTE esqueleto, diferente dos últimos.

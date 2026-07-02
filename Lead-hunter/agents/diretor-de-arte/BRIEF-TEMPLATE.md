@@ -38,10 +38,14 @@
 > Regra: pelo menos 1 referência de **fora do nicho** do lead. Roubo = algo nomeável
 > (um tipo de hero, uma seção, um par tipográfico, um tratamento de imagem), não "o clima".
 
-## 7. Direção de arte
-- **`type_system`:** (serif-editorial · serif-high-contrast · serif-classic · grotesk-swiss ·
-  grotesk-bold · mono-industrial · rounded-warm)
-- **Paleta:** brand `#___` · deep `#___` · bg `#___` · ink `#___` · surface `#___`
+## 7. Direção de arte — tipografia LIVRE
+- **Tipografia:** par **display + body** escolhido LIVREMENTE — **qualquer fonte real**
+  (Google Fonts, Fontshare, etc.), ancorado numa referência. Diga os NOMES e o porquê.
+  Ex.: display "Fraunces" (serif editorial de contraste) + body "Inter Tight".
+  **NÃO se limite a um conjunto fixo** — cada site pede uma tipografia diferente da dos últimos.
+- **Tratamento tipográfico:** peso do display, tamanho do hero, UPPERCASE/tracking, itálico,
+  mono pra dado? (o que dá personalidade)
+- **Paleta:** brand `#___` · deep `#___` · bg `#___` · ink `#___` · surface `#___` · acento `#___`
 - **Modo:** claro | escuro
 
 ## 8. Direção de componentes (pra nada cair no default)
@@ -49,6 +53,11 @@
 - **Cards:** com borda | sem borda | imagem dominante | editorial | glass | lista densa
 - **Navegação:** minimal | sticky | lateral | transparente no hero
 - **Galeria:** grid | carrossel | mosaico | antes/depois | editorial
+- **Animação & movimento (LIVRE — nada de `shine`/`ticker` padrão):** descreva as interações
+  REAIS a construir, ancoradas numa referência. Ex.: reveal por scroll (fade+translate),
+  parallax no hero, marquee de logos, hover-zoom, cursor magnético, contador que sobe, texto
+  que "monta", sticky/scroll-narrative. Escolha 2–3 que casem com o conceito — **diferentes das
+  dos últimos sites** (veja o livro de repetições).
 
 ## 9. Direção responsiva (mobile)
 - **Como o hero vira no mobile:** (empilha? imagem vira topo/fundo? texto encurta?)
