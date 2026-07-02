@@ -84,9 +84,16 @@
 
 ## 12. Checklist de aceitação (o brief só vai pra Nobara se tudo ✓)
 - [ ] Mínimo 3 referências reais com URL.
-- [ ] Cada referência tem um roubo concreto e nomeado.
+- [ ] Cada referência tem um roubo concreto e nomeado **+ uma instrução de implementação**
+      (COMO reconstruir aquele elemento neste site — a Nobara tem que SEGUIR E REMODELAR a ref,
+      não só pegar "o clima").
 - [ ] Pelo menos 1 referência de fora do nicho.
-- [ ] O esqueleto é claramente diferente dos últimos demos (`demos/*/spec.json`).
+- [ ] O **tipo de HERO** é diferente de TODOS no livro (`demos/_repetition-book.md`): se já
+      teve split/foto-ao-lado, agora é full-bleed / centralizado / foto-de-fundo / editorial-só-texto…
+- [ ] Há **animação/movimento PRESCRITO** (2–3 interações reais) — o site não pode sair estático.
+- [ ] Tipografia livre e diferente da dos últimos sites.
+- [ ] O esqueleto é claramente diferente dos últimos demos.
 - [ ] A cor foi validada por logo/assets (não a auto-detectada).
 - [ ] As fotos escolhidas estão justificadas.
+- [ ] Números (avaliações, anos etc.) **consistentes** em todo o site.
 - [ ] O CTA principal aparece no hero E no final.

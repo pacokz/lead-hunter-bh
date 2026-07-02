@@ -87,4 +87,27 @@ if (worst.pct > maxPct) {
   process.exit(1);
 }
 
-console.log(`✅ PASSOU — site bespoke (sem template) e visualmente distinto dos anteriores.`);
+// ── GATE C: tem MOVIMENTO? (animação obrigatória — nada de site estático) ──
+const motion = {
+  keyframes: /@keyframes/i.test(target),
+  observer: /IntersectionObserver/i.test(target),
+  raf: /requestAnimationFrame/i.test(target),
+  scrollAnim: /scroll(?:Y|-behavior|Timeline|-linked)|data-(?:reveal|parallax|anim)/i.test(target),
+};
+if (!Object.values(motion).some(Boolean)) {
+  console.error("❌ REPROVADO — SITE SEM MOVIMENTO. O BRIEF exige animação: adicione reais");
+  console.error("   (scroll-reveal, parallax, marquee, contador que sobe, hover ricos) — não pode sair estático.");
+  process.exit(1);
+}
+
+// ── GATE D: números CONSISTENTES (ex.: nº de avaliações não pode divergir no site) ──
+const reviewNums = [...target.matchAll(/([\d.]{1,7})\s*(?:avalia|review)/gi)]
+  .map((m) => m[1].replace(/\D/g, "")).filter(Boolean);
+const distinctReviews = [...new Set(reviewNums)];
+if (distinctReviews.length > 1) {
+  console.error(`❌ REPROVADO — Nº DE AVALIAÇÕES INCONSISTENTE no site: ${distinctReviews.join(" vs ")}.`);
+  console.error("   Use o MESMO valor em todo lugar (hero, faixa de números, footer).");
+  process.exit(1);
+}
+
+console.log(`✅ PASSOU — site bespoke (sem template), com movimento, números consistentes e distinto dos anteriores.`);
