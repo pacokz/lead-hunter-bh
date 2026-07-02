@@ -197,6 +197,22 @@ class DemoRegisterIn(BaseModel):
     published_url: str | None = None
 
 
+class DemoRequestCreate(BaseModel):
+    notes: str | None = None
+    created_by: str | None = None
+
+
+class DemoRequestOut(BaseModel):
+    id: int
+    place_id: str
+    place_name: str | None = None
+    status: str  # PENDING | IN_PROGRESS | PUBLISHED | CANCELLED
+    notes: str | None = None
+    created_by: str | None = None
+    created_at: datetime | None = None
+    files: list[str] = []
+
+
 class OutreachDraftOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

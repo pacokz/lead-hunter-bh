@@ -10,6 +10,7 @@ import type {
   CrmStage,
   DashboardStats,
   Demo,
+  DemoRequest,
   FollowUp,
   FollowUpAgenda,
   Interaction,
@@ -165,6 +166,40 @@ export const getDemos = () => getJSON<Demo[]>("/demos");
 
 export function demoFileUrl(path: string) {
   return `${API}${path}`;
+}
+
+// ---------------------------------------------------------------- gerar site
+
+export const getDemoRequests = (params?: { status?: string; placeId?: string }) => {
+  const q = new URLSearchParams();
+  if (params?.status) q.set("status", params.status);
+  if (params?.placeId) q.set("place_id", params.placeId);
+  const qs = q.toString();
+  return getJSON<DemoRequest[]>(`/demo-requests${qs ? `?${qs}` : ""}`);
+};
+
+export const createDemoRequest = (input: {
+  placeId: string;
+  notes: string | null;
+  createdBy?: string | null;
+}) =>
+  send<DemoRequest>("POST", `/leads/${encodeURIComponent(input.placeId)}/demo-requests`, {
+    notes: input.notes,
+    created_by: input.createdBy ?? null,
+  });
+
+export const setDemoRequestStatus = (input: { id: number; status: string }) =>
+  send<DemoRequest>("POST", `/demo-requests/${input.id}/status?status=${input.status}`);
+
+export async function uploadDemoAssets(input: { placeId: string; files: File[] }) {
+  const fd = new FormData();
+  for (const f of input.files) fd.append("files", f);
+  const r = await fetch(`${API}/leads/${encodeURIComponent(input.placeId)}/demo-assets`, {
+    method: "POST",
+    body: fd,
+  });
+  if (!r.ok) throw new Error(`${r.status} ${await r.text()}`);
+  return r.json() as Promise<{ saved: string[]; skipped: number }>;
 }
 
 // ---------------------------------------------------------------- campanhas

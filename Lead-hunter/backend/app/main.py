@@ -30,6 +30,11 @@ _demos = Path(settings.demos_container_dir)
 if _demos.is_dir():
     app.mount("/demos-files", StaticFiles(directory=str(_demos), html=True), name="demos")
 
+# Uploads do GERAR SITE (fotos/vídeos enviados pela interface, por place_id).
+_uploads = Path(settings.demo_uploads_container_dir)
+if _uploads.is_dir():
+    app.mount("/demo-uploads-files", StaticFiles(directory=str(_uploads)), name="demo-uploads")
+
 
 @app.get("/health")
 def health() -> dict:

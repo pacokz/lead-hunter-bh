@@ -30,6 +30,24 @@ class DemoVersion(TimestampMixin, Base):
     generated_by: Mapped[str | None] = mapped_column(String(120))
 
 
+class DemoRequest(TimestampMixin, Base):
+    """Pedido de demo feito pela interface (botão GERAR SITE).
+
+    Status: PENDING → IN_PROGRESS (agente pegou) → PUBLISHED (demo no ar,
+    marcado pelo /demos/register) | CANCELLED.
+    """
+
+    __tablename__ = "demo_requests"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    place_id: Mapped[str] = mapped_column(
+        ForeignKey("places.place_id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    status: Mapped[str] = mapped_column(String(40), default="PENDING", nullable=False, index=True)
+    notes: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[str | None] = mapped_column(String(120))
+
+
 class DemoReview(TimestampMixin, Base):
     __tablename__ = "demo_reviews"
 

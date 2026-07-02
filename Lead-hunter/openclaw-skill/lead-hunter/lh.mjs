@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Lead Hunter BH — cliente CLI pra Sukuna operar o backend (FastAPI em localhost:8000).
-import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, unlinkSync, statSync } from "fs";
+import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, unlinkSync, statSync, copyFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { spawnSync } from "child_process";
@@ -9,6 +9,9 @@ import { renderSpec } from "./render.mjs";
 const BASE = process.env.LH_API || "http://localhost:8000";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "demos");
 const PY = process.platform === "win32" ? "python" : "python3"; // VPS Linux so tem python3
+// uploads do GERAR SITE (fotos/videos que o Samuel sobe pela interface, por place_id)
+const UPLOADS = process.env.DEMO_UPLOADS_DIR
+  || (process.platform === "win32" ? resolve(ROOT, "..", "demo-uploads") : "/home/hermes/.openclaw/demo-uploads");
 
 // parser simples de flags --chave valor / --chave=valor
 function parseFlags(arr) {
@@ -385,12 +388,25 @@ const run = {
       fotos = sc.hero ? [sc.hero, ...sc.galeria] : sc.galeria;
       cor = cor || sc.color;
     }
+    // material enviado pelo Samuel via interface (GERAR SITE) — PRIORIDADE sobre o raspado
+    const upDir = resolve(UPLOADS, rest[0]);
+    const enviadas = [];
+    if (existsSync(upDir)) {
+      mkdirSync(resolve(dir, "img"), { recursive: true });
+      for (const f of readdirSync(upDir)) {
+        if (!/\.(jpe?g|png|webp|gif|mp4|mov|webm)$/i.test(f)) continue;
+        copyFileSync(resolve(upDir, f), resolve(dir, "img", `upload-${f}`));
+        enviadas.push(`img/upload-${f}`);
+      }
+      if (enviadas.length) console.log(`${enviadas.length} arquivo(s) enviado(s) pela interface copiado(s) pra img/ — use com PRIORIDADE (material real do lead).`);
+    }
     const out = {
       slug, pasta: dir, nome: p.name, segmento: p.category || "(inferir pelo nome)",
       bairro: bairro(p.address), nota: p.rating, avaliacoes: p.reviews_count,
       endereco: p.address, telefone: p.phone, whatsapp: waLink(p.phone),
       cor_detectada: cor || "(nenhuma cor detectada)",
       cor_profunda: cor ? darken(cor, 0.45) : null,
+      fotos_enviadas_pelo_samuel: enviadas.length ? enviadas : undefined,
       fotos: fotos.length ? fotos : "(lead sem foto utilizavel — gere com image-generation ou peca assets do Instagram ao Samuel)",
       site_usado: site || "(nenhum site encontrado — confirme manualmente antes de assumir 'sem site')",
       brief_pra_escrever: resolve(dir, "BRIEF.md"),
@@ -525,6 +541,25 @@ const run = {
       console.log(`  (aviso: nao consegui registrar no backend: ${e.message})`);
     }
   },
+  async "demo-pedidos"() {
+    // pedidos do botao GERAR SITE da interface — a Sukuna checa isso no heartbeat
+    const pend = await api("GET", "/demo-requests?status=PENDING");
+    const prog = await api("GET", "/demo-requests?status=IN_PROGRESS");
+    if (!pend.length && !prog.length) return console.log("Nenhum pedido de site em aberto.");
+    for (const r of [...pend, ...prog]) {
+      console.log(`\n[${r.status}] #${r.id} ${r.place_name || r.place_id}  (pedido ${r.created_by ? "por " + r.created_by : ""})`);
+      console.log(`  place_id: ${r.place_id}`);
+      if (r.notes) console.log(`  instrucoes do Samuel: ${r.notes}`);
+      if (r.files.length) console.log(`  ${r.files.length} arquivo(s) enviados em ${resolve(UPLOADS, r.place_id)} (o demo-data copia sozinho)`);
+    }
+    console.log(`\nFLUXO: demo-pedido-status <id> IN_PROGRESS -> demo-data <place_id> -> NANAMI (BRIEF) -> NOBARA (spec/render/QA) -> demo-publicar (fecha o pedido sozinho).`);
+  },
+  async "demo-pedido-status"() {
+    const [id, status] = args;
+    if (!id || !status) return console.error("uso: demo-pedido-status <id> <PENDING|IN_PROGRESS|PUBLISHED|CANCELLED>");
+    const r = await api("POST", `/demo-requests/${id}/status?status=${status.toUpperCase()}`);
+    console.log(`Pedido #${r.id} (${r.place_name || r.place_id}) -> ${r.status}`);
+  },
   async crm() {
     const c = await api("GET", "/crm");
     if (!c.length) return console.log("CRM vazio. Rode 'promote' pra trazer os leads quentes.");
@@ -565,7 +600,7 @@ const run = {
     console.log(JSON.stringify(await api("POST", args[0], args[1] ? JSON.parse(args[1]) : undefined), null, 2));
   },
   help() {
-    console.log("Comandos: status | leads [N] | lead <id> | draft <id> | demo-data <id> [--site] | demo-render <spec> | demo-similar <slug> | demo <id> [--flags] | demo-publicar <slug> | crm | promote | audit <id> | audit-run | score-run | get <path> | post <path> [json]");
+    console.log("Comandos: status | leads [N] | lead <id> | draft <id> | demo-pedidos | demo-pedido-status <id> <status> | demo-data <id> [--site] | demo-render <spec> | demo-similar <slug> | demo <id> [--flags] | demo-publicar <slug> | crm | promote | audit <id> | audit-run | score-run | get <path> | post <path> [json]");
   },
 };
 

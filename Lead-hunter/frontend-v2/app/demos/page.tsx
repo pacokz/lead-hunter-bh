@@ -15,11 +15,17 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs } from "@/components/ui/tabs";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/states";
-import { useDemos } from "@/lib/queries";
+import { OperatorTag } from "@/components/domain/operator";
+import { useDemoRequests, useDemos } from "@/lib/queries";
 import { demoFileUrl } from "@/lib/api";
 import { fmtRelative } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { Demo, DemoStatus } from "@/lib/types";
+
+const REQ_STATUS: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "Aguardando agentes", className: "bg-warn-bg text-warn border-warn-line" },
+  IN_PROGRESS: { label: "Em produção", className: "bg-violet-100 text-violet-700 border-violet-200" },
+};
 
 const STATUS: Record<DemoStatus, { label: string; className: string }> = {
   RASCUNHO: { label: "Rascunho", className: "bg-paper text-ink-muted border-line" },
@@ -30,6 +36,11 @@ const STATUS: Record<DemoStatus, { label: string; className: string }> = {
 
 export default function DemosPage() {
   const demos = useDemos();
+  const requests = useDemoRequests();
+
+  const openRequests = (requests.data ?? []).filter(
+    (r) => r.status === "PENDING" || r.status === "IN_PROGRESS"
+  );
 
   return (
     <div className="animate-fade-up">
@@ -37,6 +48,45 @@ export default function DemosPage() {
         title="Demos"
         description="Prévias de site geradas pelos agentes (Nanami dirige, Nobara executa). Publicar tem gate de QA — nota mínima 7 e zero blocker."
       />
+
+      {openRequests.length > 0 && (
+        <section aria-label="Pedidos em aberto" className="mb-5">
+          <h2 className="mb-2 font-display text-xs font-semibold uppercase tracking-wide text-ink-soft">
+            Pedidos em aberto
+            <span className="tnum ml-1.5 font-sans font-normal normal-case text-ink-faint">
+              ({openRequests.length})
+            </span>
+          </h2>
+          <div className="space-y-2">
+            {openRequests.map((req) => {
+              const cfg = REQ_STATUS[req.status] ?? REQ_STATUS.PENDING;
+              return (
+                <Card key={req.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                  <Badge className={cfg.className}>{cfg.label}</Badge>
+                  <Link
+                    href={`/leads/${encodeURIComponent(req.place_id)}`}
+                    className="text-sm font-semibold text-ink hover:text-violet-600"
+                  >
+                    {req.place_name ?? req.place_id}
+                  </Link>
+                  {req.notes && (
+                    <span className="min-w-0 flex-1 truncate text-xs text-ink-muted" title={req.notes}>
+                      &ldquo;{req.notes}&rdquo;
+                    </span>
+                  )}
+                  <span className="ml-auto flex shrink-0 items-center gap-2 text-2xs text-ink-muted">
+                    {req.files.length > 0 && (
+                      <span className="tnum">{req.files.length} arquivo{req.files.length > 1 ? "s" : ""}</span>
+                    )}
+                    {req.created_by && <OperatorTag id={req.created_by} prefix="por" />}
+                    {req.created_at && <span>{fmtRelative(req.created_at)}</span>}
+                  </span>
+                </Card>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       {demos.isPending ? (
         <div className="grid gap-4 lg:grid-cols-2">

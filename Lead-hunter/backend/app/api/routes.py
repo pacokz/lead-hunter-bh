@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
@@ -10,7 +10,7 @@ from app.enums import CommercialStage, ContactChannel, JobStatus
 from app.models.audit import SiteAudit, SiteAuditIssue, SiteScreenshot
 from app.models.config import Category, Region
 from app.models.crm import CommercialPipeline, FollowUp, Interaction
-from app.models.demo import DemoProject
+from app.models.demo import DemoProject, DemoRequest
 from app.models.pipeline import LeadPipeline, LeadScore, LeadScoreComponent
 from app.models.places import Place, SearchCampaign, SearchJob
 from app.schemas.places import (
@@ -22,6 +22,8 @@ from app.schemas.places import (
     CrmCardOut,
     DemoOut,
     DemoRegisterIn,
+    DemoRequestCreate,
+    DemoRequestOut,
     FollowUpAgendaOut,
     FollowUpCreate,
     FollowUpOut,
@@ -489,9 +491,134 @@ def register_demo(payload: DemoRegisterIn, session: Session = Depends(get_sessio
         if cp and cp.stage in (CommercialStage.NOVO, CommercialStage.QUALIFICADO):
             cp.stage = CommercialStage.DEMO_PRONTA
             crm_moved = True
+        # fecha o pedido do GERAR SITE, se havia um em aberto pra esse lead
+        if payload.published_url:
+            for req in session.scalars(
+                select(DemoRequest).where(
+                    DemoRequest.place_id == place_id,
+                    DemoRequest.status.in_(["PENDING", "IN_PROGRESS"]),
+                )
+            ):
+                req.status = "PUBLISHED"
 
     session.commit()
     return {"registered": True, "place_id": place_id, "crm_moved": crm_moved}
+
+
+# ---- Pedidos de demo (botão GERAR SITE na interface) -------------------------
+
+_SAFE_UPLOAD_EXT = {".jpg", ".jpeg", ".png", ".webp", ".gif", ".mp4", ".mov", ".webm"}
+
+
+def _uploads_dir(place_id: str):
+    from pathlib import Path
+
+    root = Path(settings.demo_uploads_container_dir)
+    return root / place_id if root.is_dir() else None
+
+
+def _request_files(place_id: str) -> list[str]:
+    d = _uploads_dir(place_id)
+    if not d or not d.is_dir():
+        return []
+    return sorted(f.name for f in d.iterdir() if f.is_file())
+
+
+def _request_out(req: DemoRequest, place_name: str | None) -> DemoRequestOut:
+    return DemoRequestOut(
+        id=req.id,
+        place_id=req.place_id,
+        place_name=place_name,
+        status=req.status,
+        notes=req.notes,
+        created_by=req.created_by,
+        created_at=req.created_at,
+        files=_request_files(req.place_id),
+    )
+
+
+@router.post("/leads/{place_id}/demo-requests", response_model=DemoRequestOut)
+def create_demo_request(
+    place_id: str, payload: DemoRequestCreate, session: Session = Depends(get_session)
+):
+    place = _require_place(session, place_id)
+    open_req = session.scalar(
+        select(DemoRequest).where(
+            DemoRequest.place_id == place_id,
+            DemoRequest.status.in_(["PENDING", "IN_PROGRESS"]),
+        )
+    )
+    if open_req:
+        raise HTTPException(status_code=409, detail="Já existe um pedido em aberto pra esse lead.")
+    req = DemoRequest(place_id=place_id, notes=payload.notes, created_by=payload.created_by)
+    session.add(req)
+    session.commit()
+    session.refresh(req)
+    return _request_out(req, place.name)
+
+
+@router.get("/demo-requests", response_model=list[DemoRequestOut])
+def list_demo_requests(
+    status: str | None = None,
+    place_id: str | None = None,
+    session: Session = Depends(get_session),
+):
+    stmt = select(DemoRequest, Place.name).join(Place, Place.place_id == DemoRequest.place_id)
+    if status:
+        stmt = stmt.where(DemoRequest.status == status)
+    if place_id:
+        stmt = stmt.where(DemoRequest.place_id == place_id)
+    rows = session.execute(stmt.order_by(DemoRequest.id.desc()).limit(200)).all()
+    return [_request_out(req, name) for req, name in rows]
+
+
+@router.post("/demo-requests/{request_id}/status", response_model=DemoRequestOut)
+def update_demo_request_status(
+    request_id: int, status: str, session: Session = Depends(get_session)
+):
+    if status not in ("PENDING", "IN_PROGRESS", "PUBLISHED", "CANCELLED"):
+        raise HTTPException(status_code=400, detail=f"Status inválido: {status}")
+    req = session.get(DemoRequest, request_id)
+    if req is None:
+        raise HTTPException(status_code=404, detail="Pedido não encontrado.")
+    req.status = status
+    session.commit()
+    place = session.get(Place, req.place_id)
+    return _request_out(req, place.name if place else None)
+
+
+@router.post("/leads/{place_id}/demo-assets")
+def upload_demo_assets(
+    place_id: str,
+    files: list[UploadFile] = File(...),
+    session: Session = Depends(get_session),
+):
+    """Sobe fotos/vídeos do lead (material do Instagram) pros agentes usarem na demo."""
+    import re
+    from pathlib import Path
+
+    _require_place(session, place_id)
+    root = Path(settings.demo_uploads_container_dir)
+    if not root.is_dir():
+        raise HTTPException(status_code=503, detail="Diretório de uploads não montado.")
+    dest = root / place_id
+    dest.mkdir(parents=True, exist_ok=True)
+
+    saved: list[str] = []
+    for up in files:
+        name = Path(up.filename or "arquivo").name
+        ext = Path(name).suffix.lower()
+        if ext not in _SAFE_UPLOAD_EXT:
+            continue
+        safe = re.sub(r"[^a-zA-Z0-9._-]+", "-", name)
+        target = dest / safe
+        n = 1
+        while target.exists():
+            target = dest / f"{Path(safe).stem}-{n}{ext}"
+            n += 1
+        target.write_bytes(up.file.read())
+        saved.append(target.name)
+    return {"saved": saved, "skipped": len(files) - len(saved)}
 
 
 @router.get("/demos", response_model=list[DemoOut])

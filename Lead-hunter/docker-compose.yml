@@ -36,6 +36,8 @@ services:
       - ./backend:/app
       # Demos dos agentes (Nobara). Na VPS: DEMOS_DIR=/home/hermes/.openclaw/demos-shared (.env)
       - ${DEMOS_DIR:-./demos}:/demos-shared:ro
+      # Uploads do GERAR SITE (fotos do IG do lead). Na VPS: DEMO_UPLOADS_DIR=/home/hermes/.openclaw/demo-uploads
+      - ${DEMO_UPLOADS_DIR:-./demo-uploads}:/demo-uploads
 
 volumes:
   pgdata:

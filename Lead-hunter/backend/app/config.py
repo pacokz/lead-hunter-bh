@@ -26,5 +26,10 @@ class Settings(BaseSettings):
     # e listado em GET /demos.
     demos_container_dir: str = "/demos-shared"
 
+    # Uploads do botão GERAR SITE (fotos/vídeos do Instagram do lead que o
+    # Samuel sobe pela interface). Montado read-write; organizado por place_id.
+    # Os agentes leem do host (demo-uploads/) na hora de criar a demo.
+    demo_uploads_container_dir: str = "/demo-uploads"
+
 
 settings = Settings()

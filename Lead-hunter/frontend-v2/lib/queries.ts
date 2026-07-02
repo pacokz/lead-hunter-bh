@@ -6,6 +6,8 @@ import * as api from "./api";
 export const qk = {
   me: ["me"] as const,
   demos: ["demos"] as const,
+  demoRequests: (placeId?: string) =>
+    placeId ? (["demo-requests", placeId] as const) : (["demo-requests"] as const),
   stats: ["stats"] as const,
   backendStats: ["backend-stats"] as const,
   leads: ["leads"] as const,
@@ -26,6 +28,11 @@ export const qk = {
 export const useMe = () =>
   useQuery({ queryKey: qk.me, queryFn: api.getMe, staleTime: Infinity });
 export const useDemos = () => useQuery({ queryKey: qk.demos, queryFn: api.getDemos });
+export const useDemoRequests = (placeId?: string) =>
+  useQuery({
+    queryKey: qk.demoRequests(placeId),
+    queryFn: () => api.getDemoRequests(placeId ? { placeId } : undefined),
+  });
 export const useStats = () => useQuery({ queryKey: qk.stats, queryFn: api.getStats });
 export const useBackendStats = () =>
   useQuery({ queryKey: qk.backendStats, queryFn: api.getBackendStats });
@@ -70,6 +77,30 @@ export function useSetCrmStage() {
   return useMutation({
     mutationFn: api.setCrmStage,
     onSuccess: () => invalidate(qk.crm, qk.leads, qk.stats),
+  });
+}
+
+export function useCreateDemoRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.createDemoRequest,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["demo-requests"] }),
+  });
+}
+
+export function useSetDemoRequestStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.setDemoRequestStatus,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["demo-requests"] }),
+  });
+}
+
+export function useUploadDemoAssets() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: api.uploadDemoAssets,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["demo-requests"] }),
   });
 }
 

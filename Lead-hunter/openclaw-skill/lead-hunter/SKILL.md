@@ -27,7 +27,9 @@ node skills/lead-hunter/lh.mjs <comando> [args]
 - `demo-render <spec.json>` → renderiza o site a partir da **SPEC** que a Nobara escreveu (formato em `SPEC.md`). É o caminho principal: a Nobara é diretora criativa (escreve a spec), o código monta o HTML. **GATE: recusa renderizar sem `demos/<slug>/BRIEF.md`** (materiais confirmados + referências) — `--force` pula, não recomendado.
 - `demo-similar <slug>` → compara a estrutura da demo com as anteriores e avisa se ficou MUITO PARECIDA (>75%) — pra não virar molde. Exit 1 se parecida demais.
 - `demo <id> --site <url do site atual>` → (FALLBACK) gera uma PRÉVIA de site via template. Sistema PARAMETRIZADO (varia por nicho): `--theme boutique|warm|bold|classic` (par de fontes + clima) e `--anim aurora,textgen,marquee,parallax,hoverzoom,shimmer` (escolha as animações). Sem flags, usa o tema/animações padrão do segmento. Baixa as fotos reais do site (`--site`); lead sem site nenhum omite `--site`. Outros overrides: `--accent #hex` (cor da marca real do lead), `--accent2 #hex`, `--headline`, `--sobre`, `--segmento`. Salva em `C:\01-hermes\Lead-hunter\demos\<slug>\`.
-- `demo-publicar <slug> --scope balmor-s-projects` → publica a prévia num link AO VIVO na Vercel (ex: `fialho-odontologia.vercel.app`) e devolve a URL.
+- `demo-publicar <slug> --scope balmor-s-projects` → publica a prévia num link AO VIVO na Vercel (ex: `fialho-odontologia.vercel.app`) e devolve a URL. Também **registra no backend** (vincula demo→lead via `demos/<slug>/lead.json`, move o CRM pra DEMO_PRONTA e fecha o pedido do GERAR SITE, se houver).
+- `demo-pedidos` → lista os pedidos do botão **GERAR SITE** da interface (Samuel/José pedem por lá, com instruções e fotos do Instagram do lead). **A Sukuna checa isso no heartbeat.**
+- `demo-pedido-status <id> <IN_PROGRESS|CANCELLED>` → marca que os agentes assumiram o pedido (a publicação fecha sozinho como PUBLISHED).
 - `crm` → leads no pipeline comercial, agrupados por estágio
 - `promote` → traz leads quentes (ALTO_POTENCIAL/PRIORIDADE) pro CRM
 - `audit-run` → audita sites pendentes
@@ -45,6 +47,10 @@ A demo nasce da **rota criativa** (NÃO do template) — é isso que garante que
 **Papéis:** o **Nanami (Diretor de Arte)** pesquisa referências e escreve o BRIEF; a
 **Nobara (Criadora)** executa (spec + render); a **Sukuna** orquestra e resume pro Samuel.
 
+0. Se o trabalho veio de um **pedido da interface** (`demo-pedidos`): marque
+   `demo-pedido-status <id> IN_PROGRESS`, leia as **instruções do Samuel** no pedido e
+   respeite-as no BRIEF. Fotos que ele subiu são copiadas pro `img/` pelo `demo-data`
+   (prefixo `upload-`) — **material real do lead, use com PRIORIDADE.**
 1. `demo-data <id> --site <url do site atual>` — baixa fotos reais + dados + cor auto-detectada.
 2. **Nanami** pesquisa referências AMPLAS (WebSearch, mín. 4, cross-nicho — não por nicho) e
    escreve `demos/<slug>/BRIEF.md` seguindo `agents/diretor-de-arte/BRIEF-TEMPLATE.md`.

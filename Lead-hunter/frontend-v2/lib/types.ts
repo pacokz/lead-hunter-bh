@@ -242,6 +242,19 @@ export interface Demo {
   lead_name: string | null;
 }
 
+export type DemoRequestStatus = "PENDING" | "IN_PROGRESS" | "PUBLISHED" | "CANCELLED";
+
+export interface DemoRequest {
+  id: number;
+  place_id: string;
+  place_name: string | null;
+  status: DemoRequestStatus;
+  notes: string | null;
+  created_by: string | null;
+  created_at: string | null;
+  files: string[];
+}
+
 // ---------------------------------------------------------------- identidade
 
 export interface Me {

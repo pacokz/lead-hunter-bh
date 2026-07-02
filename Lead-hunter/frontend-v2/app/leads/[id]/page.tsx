@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   ExternalLink,
   Globe,
+  ImagePlus,
   Instagram,
   KanbanSquare,
   MapPin,
@@ -15,6 +16,8 @@ import {
   MessageSquarePlus,
   Phone,
   ScanSearch,
+  Sparkles,
+  X,
   XCircle,
 } from "lucide-react";
 import { Card, CardHeader } from "@/components/ui/card";
@@ -37,7 +40,9 @@ import {
   useAddFollowUp,
   useAddInteraction,
   useCompleteFollowUp,
+  useCreateDemoRequest,
   useCrmBoard,
+  useDemoRequests,
   useDrafts,
   useGenerateDraft,
   useInteractions,
@@ -47,6 +52,8 @@ import {
   usePromoteSingle,
   useSetCrmOwner,
   useSetCrmStage,
+  useSetDemoRequestStatus,
+  useUploadDemoAssets,
 } from "@/lib/queries";
 import { API } from "@/lib/api";
 import { OperatorAvatar, OperatorTag } from "@/components/domain/operator";
@@ -115,18 +122,21 @@ function LeadDetail({ ctx }: { ctx: LeadContext }) {
             )}
           </p>
         </div>
-        {place.google_maps_uri && (
-          <a
-            href={place.google_maps_uri}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-9 items-center gap-2 rounded-ctrl border border-line bg-white px-4 text-sm font-medium text-ink transition-colors hover:border-ink-faint hover:bg-paper"
-          >
-            <MapPin className="h-4 w-4 text-violet-500" aria-hidden />
-            Abrir no Google Maps
-            <ExternalLink className="h-3 w-3 text-ink-faint" aria-hidden />
-          </a>
-        )}
+        <div className="flex items-center gap-2">
+          {place.google_maps_uri && (
+            <a
+              href={place.google_maps_uri}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-9 items-center gap-2 rounded-ctrl border border-line bg-white px-4 text-sm font-medium text-ink transition-colors hover:border-ink-faint hover:bg-paper"
+            >
+              <MapPin className="h-4 w-4 text-violet-500" aria-hidden />
+              Google Maps
+              <ExternalLink className="h-3 w-3 text-ink-faint" aria-hidden />
+            </a>
+          )}
+          <GenerateSiteAction placeId={place.place_id} leadName={place.name} />
+        </div>
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
@@ -142,6 +152,146 @@ function LeadDetail({ ctx }: { ctx: LeadContext }) {
         </div>
       </div>
     </div>
+  );
+}
+
+// ------------------------------------------------------------------ gerar site
+
+const REQUEST_STATUS_LABEL: Record<string, { label: string; className: string }> = {
+  PENDING: { label: "Site pedido · aguardando agentes", className: "bg-warn-bg text-warn border-warn-line" },
+  IN_PROGRESS: { label: "Site em produção", className: "bg-violet-100 text-violet-700 border-violet-200" },
+};
+
+function GenerateSiteAction({ placeId, leadName }: { placeId: string; leadName: string }) {
+  const requests = useDemoRequests(placeId);
+  const createRequest = useCreateDemoRequest();
+  const uploadAssets = useUploadDemoAssets();
+  const setStatus = useSetDemoRequestStatus();
+  const me = useMe();
+  const { toast } = useToast();
+
+  const [open, setOpen] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [sending, setSending] = useState(false);
+
+  const openReq = (requests.data ?? []).find(
+    (r) => r.status === "PENDING" || r.status === "IN_PROGRESS"
+  );
+
+  if (openReq) {
+    const cfg = REQUEST_STATUS_LABEL[openReq.status];
+    return (
+      <span className="flex items-center gap-1.5">
+        <Badge className={cfg.className} title={openReq.notes ?? undefined}>
+          <Sparkles className="h-3 w-3" aria-hidden />
+          {cfg.label}
+          {openReq.files.length > 0 && ` · ${openReq.files.length} arquivo${openReq.files.length > 1 ? "s" : ""}`}
+        </Badge>
+        {openReq.status === "PENDING" && (
+          <button
+            aria-label="Cancelar pedido de site"
+            title="Cancelar pedido"
+            disabled={setStatus.isPending}
+            onClick={async () => {
+              await setStatus.mutateAsync({ id: openReq.id, status: "CANCELLED" });
+              toast("success", "Pedido cancelado");
+            }}
+            className="flex h-6 w-6 items-center justify-center rounded-full text-ink-faint transition-colors hover:bg-bad-bg hover:text-bad"
+          >
+            <X className="h-3.5 w-3.5" aria-hidden />
+          </button>
+        )}
+      </span>
+    );
+  }
+
+  async function submit() {
+    setSending(true);
+    try {
+      await createRequest.mutateAsync({
+        placeId,
+        notes: notes.trim() || null,
+        createdBy: me.data?.operator?.id ?? null,
+      });
+      if (files.length > 0) {
+        const up = await uploadAssets.mutateAsync({ placeId, files });
+        if (up.skipped > 0) toast("error", `${up.skipped} arquivo(s) ignorado(s) (formato não aceito)`);
+      }
+      setOpen(false);
+      setNotes("");
+      setFiles([]);
+      toast("success", "Pedido enviado — os agentes assumem a partir daqui");
+    } catch (e) {
+      toast("error", e instanceof Error ? e.message : "Erro ao pedir o site");
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <>
+      <Button variant="primary" onClick={() => setOpen(true)}>
+        <Sparkles className="h-4 w-4" aria-hidden />
+        Gerar site
+      </Button>
+      <Dialog open={open} onClose={() => setOpen(false)} title={`Gerar site — ${leadName}`} className="max-w-lg">
+        <div className="space-y-3">
+          <p className="rounded-ctrl bg-violet-50 px-3 py-2 text-xs leading-relaxed text-violet-700">
+            O pedido entra na fila dos agentes: o <strong>Nanami</strong> pesquisa referências e
+            escreve o brief, a <strong>Nobara</strong> cria e publica (com gate de QA). O material
+            que você subir aqui vira a matéria-prima do site.
+          </p>
+          <Field label="Instruções (opcional)" hint="Tom, foco, serviços a destacar, cor da marca...">
+            <Textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Ex.: foco em implantes, tom sóbrio, usar o dourado do logo"
+            />
+          </Field>
+          <Field
+            label="Fotos e vídeos do lead (opcional)"
+            hint="Baixe do Instagram do cliente e solte aqui — jpg, png, webp, mp4"
+          >
+            <label className="flex cursor-pointer items-center justify-center gap-2 rounded-ctrl border border-dashed border-line bg-paper/60 px-3 py-4 text-sm text-ink-muted transition-colors hover:border-violet-300 hover:text-ink">
+              <ImagePlus className="h-4 w-4" aria-hidden />
+              {files.length > 0
+                ? `${files.length} arquivo${files.length > 1 ? "s" : ""} selecionado${files.length > 1 ? "s" : ""}`
+                : "Escolher arquivos"}
+              <input
+                type="file"
+                multiple
+                accept=".jpg,.jpeg,.png,.webp,.gif,.mp4,.mov,.webm"
+                className="sr-only"
+                onChange={(e) => setFiles([...(e.target.files ?? [])])}
+              />
+            </label>
+          </Field>
+          {files.length > 0 && (
+            <ul className="max-h-24 space-y-1 overflow-y-auto scrollbar-thin">
+              {files.map((f, i) => (
+                <li key={i} className="flex items-center justify-between gap-2 text-xs text-ink-soft">
+                  <span className="truncate">{f.name}</span>
+                  <button
+                    aria-label={`Remover ${f.name}`}
+                    onClick={() => setFiles(files.filter((_, j) => j !== i))}
+                    className="text-ink-faint hover:text-bad"
+                  >
+                    <X className="h-3 w-3" aria-hidden />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="flex justify-end">
+            <Button variant="primary" size="sm" loading={sending} onClick={submit}>
+              <Sparkles className="h-3.5 w-3.5" aria-hidden />
+              Enviar pedido
+            </Button>
+          </div>
+        </div>
+      </Dialog>
+    </>
   );
 }
 
