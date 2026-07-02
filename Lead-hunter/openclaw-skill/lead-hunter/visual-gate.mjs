@@ -101,8 +101,13 @@ if (!Object.values(motion).some(Boolean)) {
 }
 
 // ── GATE D: números CONSISTENTES (ex.: nº de avaliações não pode divergir no site) ──
-const reviewNums = [...target.matchAll(/([\d.]{1,7})\s*(?:avalia|review)/gi)]
-  .map((m) => m[1].replace(/\D/g, "")).filter(Boolean);
+// tira as tags e procura números 2–6 dígitos numa janela ao redor de "avaliaç"/"review"
+const plain = target.replace(/<[^>]+>/g, " ").replace(/&[a-z#0-9]+;/gi, " ");
+const reviewNums = [];
+for (const m of plain.matchAll(/avalia\w*|reviews?/gi)) {
+  const win = plain.slice(Math.max(0, m.index - 22), m.index + 22);
+  for (const n of win.matchAll(/\b(\d{2,6})\b/g)) reviewNums.push(n[1]);
+}
 const distinctReviews = [...new Set(reviewNums)];
 if (distinctReviews.length > 1) {
   console.error(`❌ REPROVADO — Nº DE AVALIAÇÕES INCONSISTENTE no site: ${distinctReviews.join(" vs ")}.`);
