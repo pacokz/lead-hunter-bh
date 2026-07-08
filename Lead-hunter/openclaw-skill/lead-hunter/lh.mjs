@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Lead Hunter BH — cliente CLI pra Sukuna operar o backend (FastAPI em localhost:8000).
-import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, unlinkSync, statSync, copyFileSync } from "fs";
+import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, unlinkSync, statSync, copyFileSync, appendFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { spawnSync } from "child_process";
@@ -468,6 +468,10 @@ const run = {
     const slug = rest[0];
     if (!slug) return console.error("uso: demo-publicar <slug> [--scope <time-vercel>]");
     const dir = resolve(ROOT, slug);
+    // LEDGER de auto-melhoria: registra todo BLOQUEIO de publicacao (sinal objetivo pro Analista aprender)
+    const logBlock = (gate, reason) => {
+      try { appendFileSync(resolve(ROOT, "_ledger.jsonl"), JSON.stringify({ ts: new Date().toISOString(), slug, gate, reason: String(reason).replace(/\s+/g, " ").slice(0, 300) }) + "\n"); } catch {}
+    };
     if (!existsSync(resolve(dir, "index.html")))
       return console.error(`Demo nao encontrada em ${dir}. Gere antes com: demo <place_id> --site <url>`);
     // GATE DE QA — nao publica com bug bloqueante [ALTA] (a menos que --force)
@@ -477,6 +481,7 @@ const run = {
       if (bg.status !== 0) { // fail-safe: qualquer status != 0 (falha, uso invalido, spawn ENOENT) bloqueia
         console.error("PUBLICACAO BLOQUEADA — BRIEF ausente/incompleto (ou validador falhou):\n");
         console.error((bg.stdout || "") + (bg.stderr || "") + (bg.error ? String(bg.error) : ""));
+        logBlock("brief", (bg.stdout || "") + (bg.stderr || ""));
         process.exit(1);
       }
       if ((bg.stdout || bg.stderr || "").trim()) console.log(((bg.stdout || "") + (bg.stderr || "")).trim());
@@ -486,6 +491,7 @@ const run = {
         console.error("PUBLICACAO BLOQUEADA PELO QA — ha bug(s) bloqueante(s) [ALTA]:\n");
         console.error((qa.stdout || "") + (qa.stderr || ""));
         console.error("Corrija os [ALTA] e tente de novo. (--force ignora, NAO recomendado.)");
+        logBlock("check", (qa.stdout || "").split("\n").filter((l) => l.includes("[ALTA]")).join(" | ") || "bug [ALTA]");
         process.exit(1);
       }
       console.log("QA: sem bug bloqueante ✓");
@@ -495,6 +501,7 @@ const run = {
         console.error("PUBLICACAO BLOQUEADA PELO GATE VISUAL:\n");
         console.error((vg.stdout || "") + (vg.stderr || ""));
         console.error("Refaca o site do ZERO, visualmente diferente do anterior. (--force ignora, NAO recomendado.)");
+        logBlock("visual-gate", (vg.stdout || "") + (vg.stderr || ""));
         process.exit(1);
       }
       console.log((vg.stdout || "").trim());
@@ -516,6 +523,7 @@ const run = {
       if (typeof crit.score === "number" && crit.score < 7) {
         console.error(`PUBLICACAO BLOQUEADA — craft score ${crit.score}/10 (< 7). Motivos: ${(crit.craft_issues || []).join("; ")}.`);
         console.error("Melhore hierarquia/espacamento/composicao e reavalie. (--force ignora, NAO recomendado.)");
+        logBlock("craft", `score ${crit.score}/10: ${(crit.craft_issues || []).join("; ")}`);
         process.exit(1);
       }
       console.log(`Revisao visual: craft ${crit.score ?? "?"}/10 ✓`);
@@ -529,10 +537,12 @@ const run = {
       const tierLabel = tier === null ? "nao declarado" : "T" + tier;
       if (existsSync(resolve(dir, "vendor", "three")) && tier !== 3) {
         console.error(`PUBLICACAO BLOQUEADA — vendor/three presente mas motion_tier=${tierLabel} (three.js/WebGL so em T3). Ou o Nanami declara 'motion_tier: T3' no BRIEF com justificativa espacial, ou remova o 3D.`);
+        logBlock("tier", `vendor/three com motion_tier=${tierLabel}`);
         process.exit(1);
       }
       if ((existsSync(resolve(dir, "vendor", "gsap")) || existsSync(resolve(dir, "vendor", "lenis"))) && !(tier >= 2)) {
         console.error(`PUBLICACAO BLOQUEADA — vendor/gsap ou vendor/lenis presente mas motion_tier=${tierLabel} (GSAP/Lenis/ScrollTrigger so em T2+).`);
+        logBlock("tier", `vendor/gsap|lenis com motion_tier=${tierLabel}`);
         process.exit(1);
       }
       // ANTI-CDN — o site do lead nao pode depender de terceiro; libs tem que ser vendoradas
@@ -542,6 +552,7 @@ const run = {
         .map((m) => m[1]).filter((h) => !FONT_HOSTS.test(h)))];
       if (ext.length) {
         console.error(`PUBLICACAO BLOQUEADA — recurso EXTERNO (CDN) no index.html: ${ext.join(", ")}. Vendorize (copie a lib pra vendor/ e aponte o <script> pra la) — so CDN de FONTE (Google/Fontshare/Bunny/Typekit) e permitido.`);
+        logBlock("cdn", `externo: ${ext.join(", ")}`);
         process.exit(1);
       }
     }
