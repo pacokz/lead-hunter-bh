@@ -563,6 +563,7 @@ const run = {
       "# arquivos internos — NUNCA publicar no site do lead",
       "BRIEF.md", "spec.json", "lead.json", "_qa", "_qa/**",
       "*.bak", "*.bak-*", ".gitignore", "referencias", "MEMORY.md", "notas", "*.md.bak",
+      ".published-url", "index.incompleto.bak.html",
       "",
     ].join("\n"), "utf8");
     const scope = flags.scope || process.env.VERCEL_SCOPE;

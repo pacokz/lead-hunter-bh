@@ -670,6 +670,16 @@ def list_demos(session: Session = Depends(get_session)):
                     published_url = f"https://{pname}.vercel.app"
             except Exception:  # noqa: BLE001
                 pass
+        # override explícito: se a pasta tem .published-url, ele MANDA (site fora do pipeline,
+        # ou alias que não bate com o projectName). Uma URL por linha, primeira não-vazia.
+        ov = d / ".published-url"
+        if ov.exists():
+            try:
+                u = next((ln.strip() for ln in ov.read_text(encoding="utf-8").splitlines() if ln.strip()), "")
+                if u.startswith("http"):
+                    published_url = u
+            except Exception:  # noqa: BLE001
+                pass
 
         shots = {
             vp: f"/demos-files/{d.name}/_qa/{vp}.png"
