@@ -53,6 +53,10 @@ A demo nasce da **rota criativa** (NÃO do template) — é isso que garante que
    (prefixo `upload-`) — **material real do lead, use com PRIORIDADE.**
    **Se a demo já existe, o pedido É a autorização pra REGERAR do zero** (as instruções
    e fotos novas substituem a versão antiga) — não pergunte, execute até publicar.
+   **Antes de setar IN_PROGRESS, confira o estado do lead** (`crm`/`demo-pedidos`): se já há
+   demo **PUBLISHED**, ANUNCIE que está **regenerando a demo publicada de \<lead\>** (não é lead
+   novo) e siga — é só consciência de estado pra não haver ambiguidade "travou ou é rework?"
+   (caso Paula Teodoro). **Não pare pra perguntar** — o pedido já autoriza.
 1. `demo-data <id> --site <url do site atual>` — baixa fotos reais + dados + cor auto-detectada.
 2. **Nanami** pesquisa referências AMPLAS (WebSearch, mín. 4, cross-nicho — não por nicho) e
    escreve `demos/<slug>/BRIEF.md` seguindo `agents/diretor-de-arte/BRIEF-TEMPLATE.md`.
