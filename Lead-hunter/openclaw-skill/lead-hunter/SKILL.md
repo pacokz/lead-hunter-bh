@@ -60,8 +60,12 @@ A demo nasce da **rota criativa** (NÃO do template) — é isso que garante que
 3. **Nobara** escreve `demos/<slug>/index.html` **DO ZERO** (skill `frontend-design`),
    reimplementando as referências do BRIEF — **estrutura, hero, animações, tipografia e
    composição PRÓPRIAS**. É **PROIBIDO** usar `render.mjs`/`demo-render` (gera site templateado).
+   **Stack livre conforme o `motion_tier` do BRIEF** (T0 static → T1 micro-interações CSS →
+   T2 GSAP/ScrollTrigger → T3 three.js/WebGL/canvas): libs vendoradas em `demos/_stack-kit/`
+   (copia pra `demos/<slug>/vendor/`, **nunca CDN**), guardrails em `referencias/web-stack-motion.md`
+   (reduced-motion, poster de fallback, mobile, LCP). 3D só quando o conceito é espacial — nunca decorativo.
    Antes de começar, LÊ `demos/_repetition-book.md` e **não repete nenhum padrão** de lá;
-   ao terminar, **anota** o que usou (hero, layout, animações, tipografia, grid, tratamento).
+   ao terminar, **anota** o que usou (hero, layout, animações, tipografia, grid, tratamento, tier/stack).
 4. **QA OBRIGATÓRIO (2 níveis) antes de publicar:**
    (a) `python skills/verifica-interface/check.py demos/<slug>/index.html` — bugs objetivos
        (overflow, **carrossel horizontal no mobile**, stat "0", contraste, espaço morto). Zero [ALTA].

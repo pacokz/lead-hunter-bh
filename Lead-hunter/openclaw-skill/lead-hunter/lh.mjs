@@ -410,7 +410,7 @@ const run = {
       fotos: fotos.length ? fotos : "(lead sem foto utilizavel — gere com image-generation ou peca assets do Instagram ao Samuel)",
       site_usado: site || "(nenhum site encontrado — confirme manualmente antes de assumir 'sem site')",
       brief_pra_escrever: resolve(dir, "BRIEF.md"),
-      spec_pra_escrever: resolve(dir, "spec.json"),
+      site_pra_escrever: resolve(dir, "index.html"),
     };
     console.log("\nMATERIAIS BRUTOS DA DEMO (ainda NAO confirmados):\n");
     console.log(JSON.stringify(out, null, 2));
@@ -419,8 +419,8 @@ const run = {
     console.log(`  1. CURE as fotos (olhe cada uma; descarte logo/icone/stock) e confirme a cor real pelo logo.`);
     console.log(`  2. NANAMI: pesquise referencias AMPLAS AGORA (WebSearch, min. 4) — os melhores sites de QUALQUER nicho`);
     console.log(`     (awwwards, land-book, recent.design). De cada uma, um ROUBO concreto com URL. Pelo menos 1 de FORA do nicho.`);
-    console.log(`  3. NANAMI: escreva demos/${slug}/BRIEF.md pelo modelo BRIEF-TEMPLATE.md (passe o checklist de aceitacao) — o demo-render EXIGE.`);
-    console.log(`  4. NOBARA: escreva a spec (SPEC.md) FIEL ao brief -> demo-render -> demo-similar -> QA -> demo-publicar ${slug} --scope balmor-s-projects.`);
+    console.log(`  3. NANAMI: escreva demos/${slug}/BRIEF.md pelo modelo BRIEF-TEMPLATE.md (passe o checklist, incluindo motion_tier + stack) — o site NAO nasce sem ele.`);
+    console.log(`  4. NOBARA: escreva demos/${slug}/index.html DO ZERO (frontend-design) reimplementando o brief; stack conforme motion_tier (libs vendoradas em demos/_stack-kit/, guia em referencias/web-stack-motion.md) -> QA (check.py + qa-visual, escreva _qa/critique.json) -> demo-publicar ${slug} --scope balmor-s-projects.`);
   },
   async demo() {
     const { flags, rest } = parseFlags(args);

@@ -1,7 +1,7 @@
 # BRIEF — <Nome do lead> (`<slug>`)
 
 > Modelo que o **Nanami** preenche por lead e salva em `demos/<slug>/BRIEF.md`.
-> A Nobara só renderiza a partir daqui. Não deixe campo em branco — se não se aplica,
+> A Nobara **escreve o site do zero** a partir daqui. Não deixe campo em branco — se não se aplica,
 > escreva "n/a" com o motivo. O objetivo do documento é: **impossível sair igual ao anterior.**
 
 ## 1. Diagnóstico do lead
@@ -48,6 +48,17 @@
   arredondado contam como a MESMA categoria**. Ex. de alternativas: full-bleed atrás do texto,
   duotone, colagem editorial, máscara tipográfica na foto, sem retrato, grid de detalhes.
 - **Por que diferente das últimas** (hero + imagem, citando o livro de repetições): …
+- **`motion_tier`** — EU (diretor) decido o nível de movimento; a Nobara constrói com a stack que
+  o tier pede (guia dela em `referencias/web-stack-motion.md`). Escolha UM e justifique pelo conceito:
+  - `T0 static-elegant` — sem JS de motion (jurídico/clínico sóbrio).
+  - `T1 micro-interações` — **default**: scroll-reveal, contadores, parallax leve (CSS/vanilla).
+  - `T2 scroll-choreography` — GSAP + ScrollTrigger: pin, timelines, parallax multicamada (premium/editorial).
+  - `T3 imersivo/3D` — three.js/WebGL ou canvas generativo **só quando o conceito é espacial/
+    experiencial** (arquitetura, luxo, tech, eventos). Raro — não peça 3D decorativo "porque é bonito".
+- **`stack`** — o que a Nobara deve usar de fato: `css-only` · `gsap` · `three.js` · `canvas2d` ·
+  `svg-anim` · `lottie`. Coerente com o tier. **UM movimento grande por site**, não empilhar.
+- **Efeito-âncora do motion** — descreva a UMA interação que carrega o site (o "roubo" de motion de
+  uma ref) e por que ela conta a história DESTE negócio (se sairia igual em qualquer site, não peça).
 
 ## 7. Direção de arte — tipografia LIVRE
 - **Tipografia:** par **display + body** escolhido LIVREMENTE — **qualquer fonte real**
@@ -64,11 +75,12 @@
 - **Cards:** com borda | sem borda | imagem dominante | editorial | glass | lista densa
 - **Navegação:** minimal | sticky | lateral | transparente no hero
 - **Galeria:** grid | carrossel | mosaico | antes/depois | editorial
-- **Animação & movimento (LIVRE — nada de `shine`/`ticker` padrão):** descreva as interações
-  REAIS a construir, ancoradas numa referência. Ex.: reveal por scroll (fade+translate),
-  parallax no hero, marquee de logos, hover-zoom, cursor magnético, contador que sobe, texto
-  que "monta", sticky/scroll-narrative. Escolha 2–3 que casem com o conceito — **diferentes das
-  dos últimos sites** (veja o livro de repetições).
+- **Animação & movimento (LIVRE, no nível do `motion_tier` da §6b — nada de `shine`/`ticker`
+  padrão):** descreva as interações REAIS a construir, ancoradas numa referência. Conforme o tier:
+  T1 = reveal por scroll, parallax leve, contador, hover-zoom, texto que "monta" (CSS/vanilla);
+  T2 = scroll-narrative com pin, timeline encadeada, parallax multicamada (GSAP); T3 = hero
+  WebGL/canvas (partículas, plano-onda, shader nas cores da marca). Escolha o **efeito-âncora** +
+  1–2 apoios que casem com o conceito — **diferentes dos últimos sites** (livro de repetições).
 
 ## 9. Direção responsiva (mobile)
 - **Como o hero vira no mobile:** (empilha? imagem vira topo/fundo? texto encurta?)
@@ -102,7 +114,9 @@
 - [ ] **`hero_strategy` declarado** e diferente de TODOS no livro (`demos/_repetition-book.md`).
 - [ ] **`image_treatment` materialmente diferente** das últimas N — NÃO repetir "foto em moldura
       ao lado do texto" (arco/círculo/blob/card = mesma categoria banida por ora).
-- [ ] Há **animação/movimento PRESCRITO** (2–3 interações reais) — o site não pode sair estático.
+- [ ] **`motion_tier` + `stack` declarados** e coerentes com o conceito (T3/three.js só com
+      justificativa espacial real — nunca 3D decorativo). Há **efeito-âncora prescrito**; se T2/T3,
+      lembrar a Nobara dos guardrails (reduced-motion, poster de fallback, mobile, LCP).
 - [ ] **Sem scroll horizontal no mobile** que pareça bug (só carrossel com affordance clara:
       cards parciais, snap, setas/dots — e sem estourar a página).
 - [ ] Tipografia livre e diferente da dos últimos sites.
