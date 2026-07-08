@@ -371,6 +371,20 @@ const run = {
     const p = ctx.place || {};
     const slug = slugify(p.name);
     const dir = resolve(ROOT, slug);
+    // TRAVA DE CONCORRENCIA — uma demo por vez (a pasta compartilhada nao aguenta duas ao mesmo
+    // tempo; foi o que quebrou o CYR x Bruna). Lock por slug; expira em 30min (build abandonado).
+    const lockPath = resolve(ROOT, "_building.lock");
+    const LOCK_TTL = 30 * 60 * 1000;
+    if (existsSync(lockPath)) {
+      let lock = {};
+      try { lock = JSON.parse(readFileSync(lockPath, "utf8")); } catch {}
+      const age = Date.now() - (lock.ts ? Date.parse(lock.ts) : 0);
+      if (lock.slug && lock.slug !== slug && age < LOCK_TTL) {
+        console.error(`OCUPADO — outra demo ("${lock.slug}") esta em producao ha ${Math.round(age / 60000)} min. FACA UMA DE CADA VEZ: espere ela publicar/cancelar (o demo-publicar libera), ou o lock expira sozinho em ${Math.round((LOCK_TTL - age) / 60000)} min. Nao comece esta agora.`);
+        process.exit(1);
+      }
+    }
+    writeFileSync(lockPath, JSON.stringify({ slug, ts: new Date().toISOString() }));
     mkdirSync(dir, { recursive: true });
     // vínculo demo->lead: o demo-publicar lê isso pra registrar no backend
     writeFileSync(resolve(dir, "lead.json"), JSON.stringify({ place_id: rest[0], nome: p.name, slug }, null, 2));
@@ -580,15 +594,35 @@ const run = {
         console.error("Falha no deploy:\n" + out.slice(-700));
       process.exit(1);
     }
-    console.log(`\nPUBLICADO ✅`);
-    console.log(`  Link ao vivo: ${url}`);
+    // CHECK HTTP 200 — confirma que o link REALMENTE abre antes de dar como publicado.
+    // (pega alias quebrado/protegido tipo o 307 do CYR — deploy sobe mas o site nao abre.)
+    let pname = null;
+    try { pname = JSON.parse(readFileSync(resolve(dir, ".vercel", "project.json"), "utf8")).projectName; } catch {}
+    const liveUrl = pname ? `https://${pname}.vercel.app` : url;
+    let live200 = false, lastStatus = "sem resposta";
+    for (let i = 0; i < 5; i++) {
+      try {
+        const resp = await fetch(liveUrl, { redirect: "manual", signal: AbortSignal.timeout(10000) });
+        lastStatus = String(resp.status);
+        if (resp.status === 200) { live200 = true; break; }
+      } catch (e) { lastStatus = String((e && e.message) || e); }
+      await new Promise((r) => setTimeout(r, 2500));
+    }
+    if (!live200) {
+      console.error(`PUBLICACAO NAO CONFIRMADA — ${liveUrl} respondeu ${lastStatus} (esperado 200). O deploy subiu mas o link NAO ABRE (alias quebrado/protegido). NAO registrei como publicado — cheque o projeto na Vercel.`);
+      logBlock("publish-200", `${liveUrl} -> ${lastStatus}`);
+      process.exit(1);
+    }
+    console.log(`\nPUBLICADO ✅ (link confirmado no ar, HTTP 200)`);
+    console.log(`  Link ao vivo: ${liveUrl}`);
     console.log(`  Mande esse link no WhatsApp do lead (a prévia abre no celular dele).`);
+    try { unlinkSync(resolve(ROOT, "_building.lock")); } catch {} // libera a trava de concorrencia
     // registra no backend: vincula demo->lead e move o CRM pra DEMO_PRONTA (best-effort)
     try {
       let placeId = null;
       const leadPath = resolve(dir, "lead.json");
       if (existsSync(leadPath)) placeId = JSON.parse(readFileSync(leadPath, "utf8")).place_id || null;
-      const reg = await api("POST", "/demos/register", { slug, place_id: placeId, published_url: url });
+      const reg = await api("POST", "/demos/register", { slug, place_id: placeId, published_url: liveUrl });
       if (reg.registered) console.log(`  Registrado no Lead Hunter${reg.crm_moved ? " (CRM -> Demo pronta)" : ""}.`);
       else console.log(`  (nao vinculado a lead: ${reg.reason || "sem place_id"} — gere via demo-data pra vincular)`);
     } catch (e) {
@@ -613,6 +647,7 @@ const run = {
     if (!id || !status) return console.error("uso: demo-pedido-status <id> <PENDING|IN_PROGRESS|PUBLISHED|CANCELLED>");
     const r = await api("POST", `/demo-requests/${id}/status?status=${status.toUpperCase()}`);
     console.log(`Pedido #${r.id} (${r.place_name || r.place_id}) -> ${r.status}`);
+    if (r.status === "CANCELLED") { try { unlinkSync(resolve(ROOT, "_building.lock")); console.log("(trava de concorrencia liberada)"); } catch {} }
   },
   async crm() {
     const c = await api("GET", "/crm");
