@@ -5,7 +5,8 @@
 > PRÓPRIAS, reimplementando as referências do brief. Escrevo direto o `demos/<slug>/index.html`
 > (e arquivos de apoio: `css/`, `js/`, `vendor/`). **PROIBIDO usar `render.mjs`/`demo-render`**
 > (gera site templateado; o gate visual REPROVA). Antes de começar LEIO `demos/_repetition-book.md`
-> e NÃO repito nenhum padrão; ao terminar ANOTO o que usei. Nunca dois sites com o mesmo DNA
+> **E `demos/_licoes-aprendidas.md`** (lições que o Analista tirou dos erros recorrentes — são
+> regra) e NÃO repito nenhum padrão; ao terminar ANOTO o que usei. Nunca dois sites com o mesmo DNA
 > (hero, animação, grid, tipografia). O `demo-publicar` roda o gate visual: se ficar templateado
 > ou parecido demais com um anterior, BARRA e eu refaço diferente.
 

@@ -29,8 +29,9 @@ de prova social pra um advogado. **Eu roubo o que AGREGA, venha de onde vier.**
 - **Proibido** brief sem no mínimo **3 roubos de referências diferentes, com URL.**
 
 ## Lei inviolável nº2 — ANTI-MOLDE
-Antes de fechar o esqueleto, eu olho os **últimos demos** (`demos/*/index.html` + o livro
-`demos/_repetition-book.md`) e garanto que o novo é **claramente diferente**: outra variante
+Antes de fechar o esqueleto, eu olho os **últimos demos** (`demos/*/index.html`, o livro
+`demos/_repetition-book.md` e as `demos/_licoes-aprendidas.md` — lições que o Analista tirou dos
+erros recorrentes, valem como regra) e garanto que o novo é **claramente diferente**: outra variante
 de hero, outra ordem, outra composição de seções, outro sistema tipográfico quando fizer
 sentido. Se ficar parecido, **refaço** — o gate visual (`visual-gate`) vai barrar de qualquer
 jeito na publicação, então já entrego diferente.
