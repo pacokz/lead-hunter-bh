@@ -681,11 +681,17 @@ def list_demos(session: Session = Depends(get_session)):
             except Exception:  # noqa: BLE001
                 pass
 
-        shots = {
-            vp: f"/demos-files/{d.name}/_qa/{vp}.png"
-            for vp in ("desktop", "tablet", "mobile")
-            if (d / "_qa" / f"{vp}.png").exists()
-        }
+        # ?v=<mtime> = cache-busting: quando a screenshot é regerada, a URL muda e o navegador
+        # não serve a imagem antiga do cache (era o bug do preview do CYR ficar velho).
+        shots = {}
+        for vp in ("desktop", "tablet", "mobile"):
+            p = d / "_qa" / f"{vp}.png"
+            if p.exists():
+                try:
+                    ver = int(p.stat().st_mtime)
+                except OSError:
+                    ver = 0
+                shots[vp] = f"/demos-files/{d.name}/_qa/{vp}.png?v={ver}"
         index = d / "index.html"
         has_index = index.exists()
 
@@ -720,7 +726,10 @@ def list_demos(session: Session = Depends(get_session)):
                 blockers=blockers,
                 craft_issues=list((critique or {}).get("craft_issues") or []),
                 screenshots=shots,
-                preview_path=f"/demos-files/{d.name}/index.html" if has_index else None,
+                preview_path=(
+                    f"/demos-files/{d.name}/index.html?v={int(index.stat().st_mtime)}"
+                    if has_index else None
+                ),
                 updated_at=updated_at,
                 place_id=link[0] if link else None,
                 lead_name=link[1] if link else None,
