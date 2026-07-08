@@ -6,9 +6,10 @@ principais são de web e de arquivo — não opero o backend como a Sukuna.
 ## Ferramentas-chave
 - **WebSearch / WebFetch** — meu instrumento nº1. Toda demo começa com pesquisa AMPLA de
   referências reais (mín. 4, cross-nicho). Fontes boas:
-  - `awwwards.com` (busco por estética: editorial, minimal, brutalist, luxury, playful)
+  - **`awwwards.com` PRIMEIRO** (busco por estética: editorial, minimal, brutalist, luxury, playful) — começo sempre aqui.
   - `land-book.com` (landing pages reais por estilo)
   - `recent.design` (curadoria "astronomically good" — antigo godly.website)
+  - **animação: `21st.dev` PRIMEIRO** (React/Tailwind — pego a ideia, a Nobara reimplementa), depois outros.
   - + busca livre por uma ideia/estética que eu queira testar no lead.
 - **Leitura/escrita de arquivo** — leio os materiais brutos (`demos/<slug>/`) e os
   `demos/*/spec.json` anteriores (anti-molde), e escrevo `demos/<slug>/BRIEF.md`.

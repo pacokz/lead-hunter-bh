@@ -51,6 +51,25 @@ function jaccard(a, b) {
 const target = readHtml(slug);
 if (!target) { console.error(`index.html não encontrado em demos/${slug}/ — renderize/escreva antes.`); process.exit(2); }
 
+// arquivos de apoio do PRÓPRIO demo (js/, css/) — o motion pode morar fora do index.html.
+// vendor/ (libs) NÃO conta como movimento autoral.
+function readSupportFiles(s) {
+  let extra = "";
+  for (const sub of ["js", "css"]) {
+    const d = resolve(ROOT, s, sub);
+    if (!existsSync(d)) continue;
+    for (const f of readdirSync(d)) if (/\.(js|css)$/i.test(f)) { try { extra += "\n" + readFileSync(resolve(d, f), "utf8"); } catch {} }
+  }
+  return extra;
+}
+// tier declarado no BRIEF (linha canônica "motion_tier: Tn")
+function readTier(s) {
+  const p = resolve(ROOT, s, "BRIEF.md");
+  if (!existsSync(p)) return null;
+  const m = readFileSync(p, "utf8").match(/motion[_ ]?tier\s*[:=]\s*`?\s*T([0-3])/i);
+  return m ? Number(m[1]) : null;
+}
+
 // ── GATE A: usou o template? ──
 const usedTemplate = TEMPLATE_MARKERS.filter((m) => target.includes(m));
 if (usedTemplate.length) {
@@ -87,16 +106,21 @@ if (worst.pct > maxPct) {
   process.exit(1);
 }
 
-// ── GATE C: tem MOVIMENTO? (animação obrigatória — nada de site estático) ──
+// ── GATE C: tem MOVIMENTO? (animação obrigatória — exceto se o BRIEF declarar T0 static) ──
+const tier = readTier(slug);
+const motionCorpus = target + readSupportFiles(slug); // varre index.html + js/*.js + css/*.css (não vendor/)
 const motion = {
-  keyframes: /@keyframes/i.test(target),
-  observer: /IntersectionObserver/i.test(target),
-  raf: /requestAnimationFrame/i.test(target),
-  scrollAnim: /scroll(?:Y|-behavior|Timeline|-linked)|data-(?:reveal|parallax|anim)/i.test(target),
+  keyframes: /@keyframes/i.test(motionCorpus),
+  observer: /IntersectionObserver/i.test(motionCorpus),
+  raf: /requestAnimationFrame/i.test(motionCorpus),
+  scrollAnim: /scroll(?:Y|-behavior|Timeline|-linked)|data-(?:reveal|parallax|anim)|ScrollTrigger|new Lenis/i.test(motionCorpus),
 };
-if (!Object.values(motion).some(Boolean)) {
+if (tier === 0) {
+  console.log('Movimento: BRIEF declara "motion_tier: T0" (static-elegant) — gate de movimento dispensado.');
+} else if (!Object.values(motion).some(Boolean)) {
   console.error("❌ REPROVADO — SITE SEM MOVIMENTO. O BRIEF exige animação: adicione reais");
-  console.error("   (scroll-reveal, parallax, marquee, contador que sobe, hover ricos) — não pode sair estático.");
+  console.error("   (scroll-reveal, parallax, marquee, contador, GSAP/Lenis) no index.html ou em js/ — não pode sair estático.");
+  console.error("   (Se o conceito é T0 static-elegant, o Nanami tem que declarar 'motion_tier: T0' no BRIEF.)");
   process.exit(1);
 }
 

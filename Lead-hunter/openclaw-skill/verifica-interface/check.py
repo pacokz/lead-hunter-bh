@@ -144,8 +144,10 @@ with sync_playwright() as p:
                 add("MEDIA", vp_name, "nenhum CTA de acao visivel acima da dobra")
             for s in r.get("sparseSections", []):
                 add("MEDIA", vp_name, f"secao GRANDE com pouco conteudo e sem imagem (espaco morto): '{s}'")
+            _js_heavy = any(k in html_src for k in ["<canvas", "vendor/", "three.min", "gsap", "requestanimationframe", "webgl", "new lenis", "scrolltrigger"])
             for e in errs[:5]:
-                add("MEDIA", vp_name, f"erro de JavaScript no console: {e[:140]}")
+                add("ALTA" if _js_heavy else "MEDIA", vp_name, f"erro de JavaScript no console: {e[:140]}"
+                    + (" [site usa stack JS — erro derruba a animacao]" if _js_heavy else ""))
         except Exception as ex:
             add("ALTA", vp_name, f"falha ao carregar a pagina: {ex}")
         pg.close()

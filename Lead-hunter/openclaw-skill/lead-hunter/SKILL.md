@@ -24,7 +24,7 @@ node skills/lead-hunter/lh.mjs <comando> [args]
 - `lead <id>` → contexto completo de um lead (Google + auditoria + score)
 - `draft <id>` → gera rascunho de abordagem (WhatsApp). **NÃO envia** — o Samuel envia.
 - `demo-data <id> --site <url>` → entrega os MATERIAIS BRUTOS (dados reais + fotos baixadas + cor detectada) pra a Criadora (Nobara). Ela **cura** (fotos, cor real pelo logo), **pesquisa referências** e escreve `demos/<slug>/BRIEF.md` ANTES da spec.
-- `demo-render <spec.json>` → renderiza o site a partir da **SPEC** que a Nobara escreveu (formato em `SPEC.md`). É o caminho principal: a Nobara é diretora criativa (escreve a spec), o código monta o HTML. **GATE: recusa renderizar sem `demos/<slug>/BRIEF.md`** (materiais confirmados + referências) — `--force` pula, não recomendado.
+- `demo-render <spec.json>` → **FALLBACK DEPRECIADO** (gera site templateado a partir de uma SPEC). **NÃO é o caminho principal** — o gate visual REPROVA o resultado dele na publicação. A rota canônica é a Nobara escrever o `index.html` do ZERO (ver passo a passo abaixo). Só use em emergência (lead 100% sem material).
 - `demo-similar <slug>` → compara a estrutura da demo com as anteriores e avisa se ficou MUITO PARECIDA (>75%) — pra não virar molde. Exit 1 se parecida demais.
 - `demo <id> --site <url do site atual>` → (FALLBACK) gera uma PRÉVIA de site via template. Sistema PARAMETRIZADO (varia por nicho): `--theme boutique|warm|bold|classic` (par de fontes + clima) e `--anim aurora,textgen,marquee,parallax,hoverzoom,shimmer` (escolha as animações). Sem flags, usa o tema/animações padrão do segmento. Baixa as fotos reais do site (`--site`); lead sem site nenhum omite `--site`. Outros overrides: `--accent #hex` (cor da marca real do lead), `--accent2 #hex`, `--headline`, `--sobre`, `--segmento`. Salva em `C:\01-hermes\Lead-hunter\demos\<slug>\`.
 - `demo-publicar <slug> --scope balmor-s-projects` → publica a prévia num link AO VIVO na Vercel (ex: `fialho-odontologia.vercel.app`) e devolve a URL. Também **registra no backend** (vincula demo→lead via `demos/<slug>/lead.json`, move o CRM pra DEMO_PRONTA e fecha o pedido do GERAR SITE, se houver).
@@ -45,7 +45,7 @@ quais os top prioritários e o que precisa de ação (jobs com erro, leads sem a
 A demo nasce da **rota criativa** (NÃO do template) — é isso que garante que cada site é único.
 
 **Papéis:** o **Nanami (Diretor de Arte)** pesquisa referências e escreve o BRIEF; a
-**Nobara (Criadora)** executa (spec + render); a **Sukuna** orquestra e resume pro Samuel.
+**Nobara (Criadora)** executa (escreve o `index.html` do ZERO); a **Sukuna** orquestra e resume pro Samuel.
 
 0. Se o trabalho veio de um **pedido da interface** (`demo-pedidos`): marque
    `demo-pedido-status <id> IN_PROGRESS`, leia as **instruções do Samuel** no pedido e

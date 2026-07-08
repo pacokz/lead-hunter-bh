@@ -49,7 +49,9 @@
   duotone, colagem editorial, máscara tipográfica na foto, sem retrato, grid de detalhes.
 - **Por que diferente das últimas** (hero + imagem, citando o livro de repetições): …
 - **`motion_tier`** — EU (diretor) decido o nível de movimento; a Nobara constrói com a stack que
-  o tier pede (guia dela em `referencias/web-stack-motion.md`). Escolha UM e justifique pelo conceito:
+  o tier pede (guia dela em `referencias/web-stack-motion.md`). **Declare numa linha própria e
+  literal — `motion_tier: T2` — porque os GATES leem exatamente isso** (visual-gate dispensa
+  movimento se T0; demo-publicar bloqueia three.js fora de T3 e GSAP fora de T2+). Escolha UM e justifique:
   - `T0 static-elegant` — sem JS de motion (jurídico/clínico sóbrio).
   - `T1 micro-interações` — **default**: scroll-reveal, contadores, parallax leve (CSS/vanilla).
   - `T2 scroll-choreography` — GSAP + ScrollTrigger: pin, timelines, parallax multicamada (premium/editorial).

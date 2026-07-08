@@ -37,9 +37,10 @@ if (filled.length < 700) fails.push(`BRIEF curto demais (${filled.length} chars)
 const emptyRows = (t.match(/^\|[^\n]*\|\s*\|\s*\|\s*$/gm) || []).length;
 if (emptyRows >= 3) fails.push(`${emptyRows} linha(s) de tabela em branco — preencha (fotos/refs/mapa de secoes).`);
 
-// (soft) motion_tier declarado — nao bloqueia (campo novo), mas avisa.
-const hasTier = /motion[_ ]?tier[^\n]*\bT[0-3]\b/i.test(t) || /\bT[0-3]\b\s*(static|micro|scroll|imersiv|3d)/i.test(t);
-if (!hasTier) console.error("AVISO: motion_tier nao declarado no BRIEF (T0..T3). O Nanami deveria escolher o nivel de movimento.");
+// (soft) motion_tier declarado — nao bloqueia (campo novo), mas avisa. Formato canonico "motion_tier: Tn"
+// (a lista de opcoes do template NAO casa com ':' colado, entao brief que so copiou o template nao "tem tier").
+const hasTier = /motion[_ ]?tier\s*[:=]\s*`?\s*T[0-3]\b/i.test(t);
+if (!hasTier) console.error("AVISO: motion_tier nao declarado no formato 'motion_tier: Tn'. O Nanami deve escolher o nivel de movimento (T0..T3).");
 
 if (fails.length) {
   console.error("BRIEF INCOMPLETO — publicacao bloqueada:\n- " + fails.join("\n- "));

@@ -34,11 +34,15 @@ terceiro no ar — proibido).
 mkdir -p demos/<slug>/vendor && cp -r demos/_stack-kit/three demos/<slug>/vendor/three
 # GSAP + ScrollTrigger (globais gsap, ScrollTrigger)
 cp -r demos/_stack-kit/gsap demos/<slug>/vendor/gsap
+# Lenis smooth scroll (global Lenis, IIFE 1.3.24) — casa com GSAP no T2
+cp -r demos/_stack-kit/lenis demos/<slug>/vendor/lenis
 ```
 ```html
 <script src="vendor/three/three.min.js"></script>            <!-- window.THREE -->
 <script src="vendor/gsap/gsap.min.js"></script>              <!-- window.gsap -->
 <script src="vendor/gsap/ScrollTrigger.min.js"></script>
+<link rel="stylesheet" href="vendor/lenis/lenis.min.css">    <!-- evita FOUC/salto -->
+<script src="vendor/lenis/lenis.min.js"></script>            <!-- window.Lenis -->
 ```
 Precisa de outra lib que não está no kit? Baixo pra `vendor/` com `curl` (a VPS tem rede) e uso
 local do mesmo jeito. **Nunca** deixo `<script src="https://cdn...">` no HTML final.
@@ -63,6 +67,12 @@ local do mesmo jeito. **Nunca** deixo `<script src="https://cdn...">` no HTML fi
 - Arquivos vendorados não disparam a impressão-digital de template (classes do render.mjs).
 - **Erro de console reprova** (`check.py`) — cena que joga exceção no console = bug. Testo limpo.
 
+## Onde buscar a IDEIA de animação
+Comece no **`21st.dev`** (registro de componentes React/Tailwind com muita animação) — pego a
+IDEIA do efeito e **reimplemento bespoke** em vanilla/GSAP (o código de lá é React, não colo direto).
+Só se não achar nada interessante lá parto pra outros (awwwards, codepen, etc.). O Nanami já
+aponta o efeito-âncora no BRIEF; aqui é onde eu garimpo o "como".
+
 ## Receitas (padrões, não copy-paste — escrevo bespoke)
 - **T3 hero-partículas (three.js):** `PerspectiveCamera` + `BufferGeometry` de pontos + material
   com a cor real da marca; roda num `<canvas>` `position:fixed/absolute` atrás da hero; poster
@@ -70,8 +80,24 @@ local do mesmo jeito. **Nunca** deixo `<script src="https://cdn...">` no HTML fi
   iniciar. Bom pra tech/eventos/luxo abstrato.
 - **T3 gradiente-shader:** um plano com `ShaderMaterial` (ruído animado) nas cores da marca —
   hero "viva" sem foto, elegante pra marca minimal.
-- **T2 scroll-cinema (GSAP):** `ScrollTrigger` com `pin` na seção de resultado/manifesto,
-  `gsap.timeline` revelando linhas do texto + a foto em parallax. Premium editorial.
+- **T2 scroll-cinema (GSAP + Lenis):** o **Lenis** dá o scroll suave "premium" e vira a fonte de
+  verdade que o `ScrollTrigger` consome. `pin` na seção de resultado/manifesto, `gsap.timeline`
+  revelando linhas do texto + foto em parallax. Snippet CANÔNICO (fim do `<body>`, nesta ordem —
+  gsap → ScrollTrigger → lenis → init; UM loop só, o `gsap.ticker`):
+  ```js
+  (function () {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; // guardrail nº1
+    gsap.registerPlugin(ScrollTrigger);
+    const lenis = new Lenis({ anchors: true });          // anchors:true = links # ficam suaves
+    lenis.on('scroll', ScrollTrigger.update);
+    gsap.ticker.add((t) => lenis.raf(t * 1000));          // NÃO faça requestAnimationFrame à parte (loop duplicado)
+    gsap.ticker.lagSmoothing(0);
+  })();
+  ```
+  **Quando NÃO usar Lenis:** T0/T1, `prefers-reduced-motion`, ou site com `scroll-snap` (o Lenis
+  não suporta snap nativo). Mobile: deixe o default (`syncTouch:false`) — o touch fica nativo, o
+  smooth é só no desktop. Reveals: `once:true`/`toggleActions` sem `reverse` (senão a seção some no
+  screenshot do QA).
 - **T2 contador/linha do tempo:** `ScrollTrigger.batch` revela cards em stagger; number-counter
   animado ao entrar na viewport.
 - **T1 (default):** IntersectionObserver adiciona `.in` → CSS `transform/opacity` com `transition`;

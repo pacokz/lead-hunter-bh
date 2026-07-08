@@ -418,7 +418,7 @@ const run = {
     console.log(`PROXIMO PASSO (Diretor de Arte -> Criadora):`);
     console.log(`  1. CURE as fotos (olhe cada uma; descarte logo/icone/stock) e confirme a cor real pelo logo.`);
     console.log(`  2. NANAMI: pesquise referencias AMPLAS AGORA (WebSearch, min. 4) — os melhores sites de QUALQUER nicho`);
-    console.log(`     (awwwards, land-book, recent.design). De cada uma, um ROUBO concreto com URL. Pelo menos 1 de FORA do nicho.`);
+    console.log(`     (awwwards.com PRIMEIRO; depois land-book/recent.design). Animacao: 21st.dev primeiro. De cada uma, um ROUBO concreto com URL. Pelo menos 1 de FORA do nicho.`);
     console.log(`  3. NANAMI: escreva demos/${slug}/BRIEF.md pelo modelo BRIEF-TEMPLATE.md (passe o checklist, incluindo motion_tier + stack) — o site NAO nasce sem ele.`);
     console.log(`  4. NOBARA: escreva demos/${slug}/index.html DO ZERO (frontend-design) reimplementando o brief; stack conforme motion_tier (libs vendoradas em demos/_stack-kit/, guia em referencias/web-stack-motion.md) -> QA (check.py + qa-visual, escreva _qa/critique.json) -> demo-publicar ${slug} --scope balmor-s-projects.`);
   },
@@ -474,9 +474,9 @@ const run = {
     if (!flags.force) {
       // GATE DO BRIEF — sem BRIEF real (o "roubo" do Nanami) o site sai templateado.
       const bg = spawnSync("node", [resolve(dirname(fileURLToPath(import.meta.url)), "validate-brief.mjs"), slug], { encoding: "utf8" });
-      if (bg.status === 1) {
-        console.error("PUBLICACAO BLOQUEADA — BRIEF ausente/incompleto:\n");
-        console.error((bg.stdout || "") + (bg.stderr || ""));
+      if (bg.status !== 0) { // fail-safe: qualquer status != 0 (falha, uso invalido, spawn ENOENT) bloqueia
+        console.error("PUBLICACAO BLOQUEADA — BRIEF ausente/incompleto (ou validador falhou):\n");
+        console.error((bg.stdout || "") + (bg.stderr || "") + (bg.error ? String(bg.error) : ""));
         process.exit(1);
       }
       if ((bg.stdout || bg.stderr || "").trim()) console.log(((bg.stdout || "") + (bg.stderr || "")).trim());
@@ -519,6 +519,31 @@ const run = {
         process.exit(1);
       }
       console.log(`Revisao visual: craft ${crit.score ?? "?"}/10 ✓`);
+      // ENFORCEMENT motion_tier x stack — three/GSAP so no tier que o BRIEF autorizou (guardrail mecanico)
+      const briefPath = resolve(dir, "BRIEF.md");
+      let tier = null;
+      if (existsSync(briefPath)) {
+        const tm = readFileSync(briefPath, "utf8").match(/motion[_ ]?tier\s*[:=]\s*`?\s*T([0-3])/i);
+        tier = tm ? Number(tm[1]) : null;
+      }
+      const tierLabel = tier === null ? "nao declarado" : "T" + tier;
+      if (existsSync(resolve(dir, "vendor", "three")) && tier !== 3) {
+        console.error(`PUBLICACAO BLOQUEADA — vendor/three presente mas motion_tier=${tierLabel} (three.js/WebGL so em T3). Ou o Nanami declara 'motion_tier: T3' no BRIEF com justificativa espacial, ou remova o 3D.`);
+        process.exit(1);
+      }
+      if ((existsSync(resolve(dir, "vendor", "gsap")) || existsSync(resolve(dir, "vendor", "lenis"))) && !(tier >= 2)) {
+        console.error(`PUBLICACAO BLOQUEADA — vendor/gsap ou vendor/lenis presente mas motion_tier=${tierLabel} (GSAP/Lenis/ScrollTrigger so em T2+).`);
+        process.exit(1);
+      }
+      // ANTI-CDN — o site do lead nao pode depender de terceiro; libs tem que ser vendoradas
+      const _html = readFileSync(resolve(dir, "index.html"), "utf8");
+      const FONT_HOSTS = /fonts\.googleapis\.com|fonts\.gstatic\.com|api\.fontshare\.com|fonts\.bunny\.net|use\.typekit\.net|p\.typekit\.net/i;
+      const ext = [...new Set([...(_html.matchAll(/<(?:script|link)[^>]+(?:src|href)=["']https?:\/\/([^"'\/]+)/gi))]
+        .map((m) => m[1]).filter((h) => !FONT_HOSTS.test(h)))];
+      if (ext.length) {
+        console.error(`PUBLICACAO BLOQUEADA — recurso EXTERNO (CDN) no index.html: ${ext.join(", ")}. Vendorize (copie a lib pra vendor/ e aponte o <script> pra la) — so CDN de FONTE (Google/Fontshare/Bunny/Typekit) e permitido.`);
+        process.exit(1);
+      }
     }
     // CONFIDENCIALIDADE: o deploy sobe a pasta inteira e a Vercel serve estatico — sem isto,
     // <slug>.vercel.app/BRIEF.md, /_qa/critique.json, /lead.json ficam PUBLICOS no site do lead
