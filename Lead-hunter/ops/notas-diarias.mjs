@@ -12,6 +12,7 @@ const AGENTS = {
   comercial:      { nome: "Yuji",   ws: "workspace-comercial" },
   diagnosticador: { nome: "Megumi", ws: "workspace-diagnosticador" },
   criadora:       { nome: "Nobara", ws: "workspace-criadora" },
+  "diretor-arte": { nome: "Nanami", ws: "workspace-diretor-arte" },
 };
 
 // início do dia local
@@ -65,4 +66,4 @@ for (const [id, { nome, ws }] of Object.entries(AGENTS)) {
   escritas++;
   console.log(`${nome}: ${file} (${linhas.length} sessões)`);
 }
-console.log(`Notas diárias escritas: ${escritas}/4.`);
+console.log(`Notas diárias escritas: ${escritas}/${Object.keys(AGENTS).length}.`);

@@ -472,6 +472,14 @@ const run = {
       return console.error(`Demo nao encontrada em ${dir}. Gere antes com: demo <place_id> --site <url>`);
     // GATE DE QA — nao publica com bug bloqueante [ALTA] (a menos que --force)
     if (!flags.force) {
+      // GATE DO BRIEF — sem BRIEF real (o "roubo" do Nanami) o site sai templateado.
+      const bg = spawnSync("node", [resolve(dirname(fileURLToPath(import.meta.url)), "validate-brief.mjs"), slug], { encoding: "utf8" });
+      if (bg.status === 1) {
+        console.error("PUBLICACAO BLOQUEADA — BRIEF ausente/incompleto:\n");
+        console.error((bg.stdout || "") + (bg.stderr || ""));
+        process.exit(1);
+      }
+      if ((bg.stdout || bg.stderr || "").trim()) console.log(((bg.stdout || "") + (bg.stderr || "")).trim());
       const checker = resolve(dirname(fileURLToPath(import.meta.url)), "..", "verifica-interface", "check.py");
       const qa = spawnSync(PY, [checker, resolve(dir, "index.html")], { encoding: "utf8" });
       if (qa.status === 2) {
