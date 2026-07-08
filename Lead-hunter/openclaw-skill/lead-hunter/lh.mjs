@@ -520,10 +520,19 @@ const run = {
       }
       console.log(`Revisao visual: craft ${crit.score ?? "?"}/10 ✓`);
     }
+    // CONFIDENCIALIDADE: o deploy sobe a pasta inteira e a Vercel serve estatico — sem isto,
+    // <slug>.vercel.app/BRIEF.md, /_qa/critique.json, /lead.json ficam PUBLICOS no site do lead
+    // (analise interna, nota de craft, dados do lead). Escreve o .vercelignore ANTES de todo deploy.
+    writeFileSync(resolve(dir, ".vercelignore"), [
+      "# arquivos internos — NUNCA publicar no site do lead",
+      "BRIEF.md", "spec.json", "lead.json", "_qa", "_qa/**",
+      "*.bak", "*.bak-*", ".gitignore", "referencias", "MEMORY.md", "notas", "*.md.bak",
+      "",
+    ].join("\n"), "utf8");
     const scope = flags.scope || process.env.VERCEL_SCOPE;
     const vargs = ["deploy", "--prod", "--yes"];
     if (scope) vargs.push("--scope", scope);
-    console.log(`Publicando "${slug}" na Vercel${scope ? ` (scope ${scope})` : ""}...`);
+    console.log(`Publicando "${slug}" na Vercel${scope ? ` (scope ${scope})` : ""}... (.vercelignore protege arquivos internos)`);
     const r = spawnSync("vercel", vargs, { cwd: dir, shell: true, encoding: "utf8" });
     const out = `${r.stdout || ""}\n${r.stderr || ""}`;
     const url = (out.match(/https:\/\/[a-z0-9.-]+\.vercel\.app/gi) || []).pop();
