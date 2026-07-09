@@ -50,6 +50,22 @@ if (!/image[_ ]?treatment/i.test(t))
 if (!/primary[_ ]?visual[_ ]?move/i.test(t))
   fails.push("primary_visual_move nao declarado — o gesto visual que carrega o site.");
 
+// (6) OLHOU de verdade: o BRIEF tem que CITAR prints REAIS capturados (refs/NN.png que existem no
+// manifest). Prova que o Nanami escolheu o roubo pelo que VIU, nao inferiu do texto. So exige se
+// houve captura (manifest com >=1 ok) — senao degrada pra WebSearch sem travar o pipeline.
+const manifestPath = resolve(ROOT, slug, "refs", "manifest.json");
+if (existsSync(manifestPath)) {
+  let okShots = [];
+  try { okShots = JSON.parse(readFileSync(manifestPath, "utf8")).filter((m) => m.ok); } catch {}
+  if (okShots.length >= 1) {
+    const okFiles = new Set(okShots.map((m) => String(m.file).replace(/\.png$/i, "")));
+    const cited = [...new Set([...t.matchAll(/refs\/(\d{2})\.png/gi)].map((m) => m[1]))];
+    const realCited = cited.filter((n) => okFiles.has(n));
+    if (realCited.length < 2)
+      fails.push(`BRIEF cita ${realCited.length} print REAL (refs/NN.png) — min. 2. Havia ${okShots.length} print(s) capturado(s): o Nanami tem que OLHAR e citar de qual tirou cada roubo (nao inferir do texto).`);
+  }
+}
+
 if (fails.length) {
   console.error("BRIEF INCOMPLETO — publicacao bloqueada:\n- " + fails.join("\n- "));
   console.error("Peca ao Nanami pra completar o BRIEF (BRIEF-TEMPLATE.md, passe o checklist de aceitacao).");

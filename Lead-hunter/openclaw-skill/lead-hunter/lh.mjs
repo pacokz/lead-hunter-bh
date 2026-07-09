@@ -478,20 +478,52 @@ const run = {
     const briefPath = resolve(dir, "BRIEF.md");
     const vbPath = resolve(dirname(fileURLToPath(import.meta.url)), "validate-brief.mjs");
     const hasBrand = existsSync(resolve(dir, "brand"));
-    const basePrompt = `Voce e o Nanami (Diretor de Arte). Escreva AGORA o BRIEF de arte desta demo (seu SOUL diz como).\n`
+    // ===== PASSE 1 de 2: o Nanami DESCOBRE referencias e escreve refs/urls.json =====
+    // (Depois o ref-shot.py CAPTURA os prints reais; no passe 2 ele OLHA e escolhe o roubo pelo que VIU.)
+    const refsDir = resolve(dir, "refs");
+    const urlsPath = resolve(refsDir, "urls.json");
+    const refShot = resolve(dirname(fileURLToPath(import.meta.url)), "ref-shot.py");
+    mkdirSync(refsDir, { recursive: true });
+    const p1 = `Voce e o Nanami (Diretor de Arte). PASSE 1 de 2 desta demo: DESCOBRIR referencias visuais REAIS pra voce OLHAR depois (nao inferir do texto).\n`
+      + `Lead: ${lead.nome || slug} (segmento no lead.json). Pesquise (WebSearch) e escreva demos/${slug}/refs/urls.json = lista JSON de 8-12 referencias, cada item {"url","fonte","estetica","elemento","porque"}.\n`
+      + `REGRAS pra a captura NAO tomar bloqueio de robo:\n`
+      + `- PRIORIZE galerias curadas que SEMPRE renderizam: awwwards.com (paginas de categoria/tag/collection/SOTD), 21st.dev (animacao/componentes), godly.website, siteinspire.com, saaslandingpage.com. Sao ouro e nao bloqueiam.\n`
+      + `- Ate ~4 podem ser sites individuais alvo do roubo, MAS varios (linear, apple, vercel...) bloqueiam robo — por isso a MAIORIA tem que ser galeria/curadoria.\n`
+      + `- >=1 referencia de FORA do nicho (cross-pollination). Alinhe ao nicho do lead nas queries.\n`
+      + `Escreva SO o refs/urls.json AGORA (JSON valido). NAO escreva o BRIEF ainda. Responda "urls prontas".`;
+    console.log(`Passe 1: invocando o Nanami por gateway pra descobrir referencias (refs/urls.json) ...`);
+    spawnSync("openclaw", ["agent", "--agent", "diretor-arte", "--message", p1, "--json", "--timeout", "600"], { encoding: "utf8", timeout: 660000 });
+    // captura os prints reais das URLs que o Nanami escolheu
+    let okRefs = [];
+    if (existsSync(urlsPath)) {
+      console.log(`Capturando screenshots das referencias (ref-shot.py) ...`);
+      const rs = spawnSync(PY, [refShot, refsDir], { encoding: "utf8", timeout: 300000 });
+      if ((rs.stdout || "").trim()) console.log(rs.stdout.trim());
+      try { okRefs = JSON.parse(readFileSync(resolve(refsDir, "manifest.json"), "utf8")).filter((m) => m.ok); } catch {}
+    } else {
+      console.error("Nanami nao escreveu refs/urls.json no passe 1 — seguindo pro BRIEF com WebSearch (sem prints).");
+    }
+    const refsList = okRefs.length
+      ? okRefs.map((m) => `  refs/${m.file}  <-  ${m.url}${m.elemento ? "  (" + m.elemento + ")" : ""}`).join("\n")
+      : "(nenhum print capturado — use WebSearch e descreva com cuidado)";
+    console.log(`Referencias capturadas com sucesso: ${okRefs.length}.`);
+
+    // ===== PASSE 2 de 2: o Nanami OLHA os prints e escreve o BRIEF citando cada roubo por arquivo =====
+    const basePrompt = `Voce e o Nanami (Diretor de Arte). PASSE 2 de 2: OLHE as referencias JA CAPTURADAS e escreva o BRIEF (seu SOUL diz como).\n`
       + `Lead: ${lead.nome || slug}. Pasta: demos/${slug}/ — ${fotos.length} foto(s) reais em img/ (${fotos.slice(0, 10).join(", ") || "nenhuma"}).\n`
+      + `REFERENCIAS CAPTURADAS (imagens REAIS em demos/${slug}/refs/) — OLHE CADA UMA (voce tem visao), nao invente:\n${refsList}\n`
+      + `Para CADA roubo do BRIEF, CITE o arquivo refs/NN.png de onde tirou e o que VIU nele (ex: "roubo: o hero split-screen de refs/03.png"). Escolha o roubo PELO QUE VIU na imagem, nao pela descricao textual.\n`
       + (hasBrand ? `IDENTIDADE VISUAL REAL em demos/${slug}/brand/ — LEIA o BRAND.md e OLHE logo/paleta. USE a cor/logo/tipografia REAIS: a LOGO tem que aparecer no HEADER e no FOOTER do site (imagem, ou o wordmark tipografado na fonte da marca + o simbolo). Nao chute cor nem use nome generico.\n` : "")
       + `MAQUETE CHEIA (impressiona, estilo agencia, ref cyrclinic ~14 secoes): prescreva ~12-16 secoes com substancia (serviços/o que faz + como funciona + galeria grande + diferenciais + prova social + FAQ + numeros + CTA). A OFERTA (o que o negocio faz) tem que ficar clara. Conteudo representativo pra encher e OK, mas ROTULE o ilustrativo como "exemplo" (nunca numero/depoimento inventado como real). Enxuto = xucro = reprovado.\n`
-      + `1) Pesquise referencias AMPLAS DE VERDADE (WebSearch, min 4, awwwards.com PRIMEIRO, 21st.dev pra animacao, >=1 de FORA do nicho), 1 roubo concreto+URL de cada.\n`
-      + `2) Leia demos/_repetition-book.md e demos/_licoes-aprendidas.md e faca DIFERENTE das ultimas.\n`
-      + `3) Escreva demos/${slug}/BRIEF.md pelo BRIEF-TEMPLATE.md, preenchendo TUDO (conceito, hero_strategy, primary_visual_move, image_treatment, "motion_tier: Tn" literal, stack, paleta, tipografia, mapa de secoes, roubos com instrucao de implementacao). Nao deixe campo vazio.\n`
+      + `Leia demos/_repetition-book.md e demos/_licoes-aprendidas.md e faca DIFERENTE das ultimas.\n`
+      + `Escreva demos/${slug}/BRIEF.md pelo BRIEF-TEMPLATE.md, preenchendo TUDO (conceito, hero_strategy, primary_visual_move, image_treatment, "motion_tier: Tn" literal, stack, paleta, tipografia, mapa de secoes, roubos com refs/NN.png + instrucao de implementacao). Nao deixe campo vazio.\n`
       + `Responda so "BRIEF pronto" no fim.`;
     // ate 2 tentativas: se o BRIEF nao passar no validate-brief, reinvoca o Nanami com os erros
     let lastErr = "";
     for (let attempt = 1; attempt <= 2; attempt++) {
       const msg = attempt === 1 ? basePrompt
         : `${basePrompt}\n\nATENCAO: o BRIEF anterior FOI REPROVADO pelo validador. Corrija exatamente isto e reescreva demos/${slug}/BRIEF.md:\n${lastErr}`;
-      console.log(`Invocando o Nanami por gateway (tentativa ${attempt}) pra escrever demos/${slug}/BRIEF.md ...`);
+      console.log(`Passe 2: invocando o Nanami por gateway (tentativa ${attempt}) pra OLHAR os prints e escrever demos/${slug}/BRIEF.md ...`);
       const r = spawnSync("openclaw", ["agent", "--agent", "diretor-arte", "--message", msg, "--json", "--timeout", "600"], { encoding: "utf8", timeout: 660000 });
       if (!existsSync(briefPath)) { lastErr = "BRIEF.md nao foi criado."; console.error(`Nanami nao escreveu o BRIEF (tentativa ${attempt}).`); continue; }
       const vb = spawnSync("node", [vbPath, slug], { encoding: "utf8" });

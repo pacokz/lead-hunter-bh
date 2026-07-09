@@ -41,15 +41,17 @@
 |------|------------------|---------|-----------|--------------------|
 |      |                  |         |           |                    |
 
-## 6. Referências (mínimo 3, com URL) — o "roubo"
-| # | URL (site real) | Nicho de origem | O que eu ROUBO daqui (concreto) |
-|---|-----------------|-----------------|---------------------------------|
-| 1 |                 |                 |                                 |
-| 2 |                 |                 |                                 |
-| 3 |                 |                 |                                 |
+## 6. Referências (mínimo 3) — o "roubo" (eu OLHEI o print, não inferi)
+| # | Print (refs/NN.png) | URL (site real) | Nicho de origem | O que eu ROUBO daqui (concreto, PELO QUE VI no print) |
+|---|---------------------|-----------------|-----------------|------------------------------------------------------|
+| 1 | refs/  .png         |                 |                 |                                                      |
+| 2 | refs/  .png         |                 |                 |                                                      |
+| 3 | refs/  .png         |                 |                 |                                                      |
 
-> Regra: pelo menos 1 referência de **fora do nicho** do lead. Roubo = algo nomeável
-> (um tipo de hero, uma seção, um par tipográfico, um tratamento de imagem), não "o clima".
+> Regra: os prints já foram capturados em `demos/<slug>/refs/` — eu **abro e OLHO** cada um e cito o
+> arquivo `refs/NN.png` de onde tirei o roubo (mín. 2 roubos citando prints reais; o validador confere).
+> Pelo menos 1 referência de **fora do nicho** do lead. Roubo = algo nomeável que eu VI (um tipo de hero,
+> uma seção, um par tipográfico, um tratamento de imagem), não "o clima".
 
 ## 6b. Estratégia visual — DECLARE antes de codar (o coração do craft)
 - **`hero_strategy`** — a decisão dominante da hero (escolha UMA, diferente das últimas):

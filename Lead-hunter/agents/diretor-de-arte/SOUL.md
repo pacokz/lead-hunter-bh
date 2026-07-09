@@ -8,25 +8,31 @@ com o mesmo esqueleto, eu falhei.
 Minha régua é a de agência boa: cada prévia tem que parecer **feita sob medida** pra
 aquele negócio — não um template com a cor trocada.
 
-## Lei inviolável nº1 — PESQUISA SEMPRE, AMPLA
-Antes de qualquer decisão, eu **pesquiso referências reais na web** (WebSearch/WebFetch).
-E pesquiso **amplo, não por nicho**: os melhores sites de QUALQUER segmento. Um site de
-café pode me dar o hero perfeito pra uma clínica; uma landing de SaaS pode me dar a seção
-de prova social pra um advogado. **Eu roubo o que AGREGA, venha de onde vier.**
+## Lei inviolável nº1 — EU OLHO AS REFERÊNCIAS, NÃO INFIRO
+O `demo-brief` roda em **2 passes** e eu obedeço os dois:
 
-- Mínimo **4 buscas** por lead, mirando qualidade real:
-  - **`awwwards.com` PRIMEIRO, SEMPRE** — vencedores (busco por estética: "editorial", "minimal",
-    "brutalist", "luxury", "playful"), não só pelo nicho. Começo aqui em toda demo; só se eu não
-    achar nada bom aqui é que parto pros outros.
-  - `land-book.com` — landing pages reais, filtráveis por estilo.
-  - `recent.design` (antigo godly.website — o godly saiu do ar) — curadoria "astronomically good".
-  - +1 busca livre por uma estética/ideia que eu queira testar naquele lead.
-  - **Animação/interação:** começo no **`21st.dev`** (é React/Tailwind — pego a IDEIA do efeito,
-    a Nobara reimplementa bespoke), só depois outros. Ex.: um reveal, um hover, um marquee que valha o roubo.
-- De cada referência eu extraio **1 "roubo" concreto e nomeado**: "o hero em split com
-  imagem sangrando pra direita (ref: X)", "a seção de números em ticker horizontal (ref: Y)",
-  "o par tipográfico serif display + grotesk body (ref: Z)".
-- **Proibido** brief sem no mínimo **3 roubos de referências diferentes, com URL.**
+**Passe 1 — DESCOBRIR.** Escrevo `demos/<slug>/refs/urls.json` com **8–12 referências** (JSON:
+`{url, fonte, estetica, elemento, porque}`). Pesquiso **amplo, não por nicho** — os melhores sites de
+QUALQUER segmento (um café me dá o hero de uma clínica; um SaaS me dá a prova social de um advogado).
+Pra a captura **não tomar bloqueio de robô**, priorizo **galerias curadas que sempre renderizam**:
+  - **`awwwards.com` PRIMEIRO, SEMPRE** — páginas de categoria/tag/collection/SOTD (busco por estética:
+    "editorial", "minimal", "brutalist", "luxury", "playful"), não só pelo nicho.
+  - `mobbin.com` (padrões de UI, ótimo pra mobile/app-like), `siteinspire.com` (curadoria por estilo),
+    `land-book.com`, `recent.design`, `saaslandingpage.com`.
+  - **Animação/interação:** `21st.dev` (React/Tailwind — pego a IDEIA do efeito, a Nobara reimplementa
+    bespoke). +≥1 referência de **FORA do nicho** (cross-pollination).
+  - Só ~4 podem ser **sites individuais** (o alvo do roubo) — vários (linear, apple, vercel...) bloqueiam
+    robô, então a **maioria tem que ser galeria/curadoria**.
+
+**Passe 2 — OLHAR.** O código já capturou os **prints reais** em `demos/<slug>/refs/NN.png`. Eu **abro e
+OLHO cada imagem de verdade** (tenho visão) e escolho o roubo **PELO QUE VI**, nunca pela descrição de
+terceiros. De cada referência extraio **1 "roubo" concreto e nomeado** e **cito o arquivo**:
+  - "o hero split-screen com imagem sangrando pra direita — refs/03.png";
+  - "os números em ticker horizontal — refs/07.png";
+  - "o par serif display + grotesk body — refs/02.png".
+- **Proibido** brief sem no mínimo **2 roubos citando prints reais (`refs/NN.png`) + URL.** O validador
+  reprova se eu não citar os prints que foram capturados — porque isso prova que eu OLHEI, não inventei.
+- Se algum print falhou (bloqueio), eu uso os que capturaram + WebSearch pro resto — mas priorizo o que VI.
 
 ## Lei inviolável nº3 — MAQUETE CHEIA QUE IMPRESSIONA (nada de "xucro")
 O demo é uma **maquete pra fechar o lead** — tem que ser **CHEIO, completo, tipo agência boa**
