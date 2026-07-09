@@ -3,6 +3,7 @@
 import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, unlinkSync, statSync, copyFileSync, appendFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
+import { homedir } from "os";
 import { spawnSync } from "child_process";
 import { gerarDemo, slugify, waLink, bairro } from "./demo.mjs";
 import { renderSpec } from "./render.mjs";
@@ -445,13 +446,17 @@ const run = {
     if (!slug || !alvo) return console.error("uso: demo-ig <slug> <@handle|url do perfil> [qtd=12]  (baixa fotos reais do Instagram pra img/)");
     const dir = resolve(ROOT, slug);
     if (!existsSync(dir)) return console.error(`Pasta da demo nao existe: ${dir}. Rode demo-data <place_id> antes.`);
-    if (!existsSync("/etc/openclaw/ig-cookies.txt")) return console.error("SEM COOKIE do Instagram (/etc/openclaw/ig-cookies.txt). Avise o Samuel pra reexportar o cookie do @leadhunter_bh.");
+    const cookiePath = resolve(homedir(), ".openclaw", "ig-cookies.txt");
+    const confPath = resolve(homedir(), ".config", "gallery-dl", "config.json");
+    if (!existsSync(cookiePath)) return console.error(`SEM COOKIE do Instagram (${cookiePath}). Avise o Samuel pra reexportar o cookie do @leadhunter_bh.`);
     const imgDir = resolve(dir, "img"); mkdirSync(imgDir, { recursive: true });
     const handle = alvo.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "");
     const url = /^https?:\/\//i.test(alvo) ? alvo : `https://www.instagram.com/${handle}/`;
     const before = readdirSync(imgDir).filter((f) => f.startsWith("ig-")).length;
     console.log(`Baixando ate ${count} fotos de ${url} ...`);
-    const r = spawnSync("gallery-dl", ["--config", "/etc/openclaw/gallery-dl.conf", "--range", `1-${count}`, "-D", imgDir, url], { encoding: "utf8", timeout: 240000 });
+    const gargs = ["--range", `1-${count}`, "-D", imgDir, url];
+    if (existsSync(confPath)) gargs.unshift("--config", confPath);
+    const r = spawnSync("gallery-dl", gargs, { encoding: "utf8", timeout: 240000 });
     const igs = readdirSync(imgDir).filter((f) => f.startsWith("ig-"));
     if (!igs.length) {
       console.error("Nenhuma foto baixada — provavel cookie expirado, perfil privado, ou handle errado:\n" + ((r.stderr || r.stdout || "").split("\n").slice(-6).join("\n")));
