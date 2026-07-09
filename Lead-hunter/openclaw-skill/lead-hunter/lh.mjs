@@ -465,6 +465,41 @@ const run = {
     console.log(`OK — ${Math.max(igs.length - before, igs.length)} foto(s) do Instagram salvas em img/ (prefixo ig-). Total: ${igs.length}.`);
     console.log(`NOBARA: CURE — fique so com as REAIS do negocio (fachada, equipe, resultado, ambiente); descarte print/meme/story/logo. Depois segue o fluxo normal.`);
   },
+  async "demo-brief"() {
+    // A': invoca o NANAMI (Diretor de Arte) por GATEWAY (nao por @mencao) pra escrever o BRIEF.
+    // Handoff mecanico e confiavel: o codigo dispara o Nanami, nao a Nobara/@mencao.
+    const { rest } = parseFlags(args);
+    const slug = rest[0];
+    if (!slug) return console.error("uso: demo-brief <slug>  (invoca o Nanami por gateway pra pesquisar referencias e escrever o BRIEF)");
+    const dir = resolve(ROOT, slug);
+    if (!existsSync(dir)) return console.error(`Pasta da demo nao existe: ${dir}. Rode demo-data <place_id> antes.`);
+    let lead = {};
+    try { lead = JSON.parse(readFileSync(resolve(dir, "lead.json"), "utf8")); } catch {}
+    const fotos = existsSync(resolve(dir, "img")) ? readdirSync(resolve(dir, "img")).filter((f) => /\.(jpg|jpeg|png|webp)$/i.test(f)) : [];
+    const briefPath = resolve(dir, "BRIEF.md");
+    const vbPath = resolve(dirname(fileURLToPath(import.meta.url)), "validate-brief.mjs");
+    const basePrompt = `Voce e o Nanami (Diretor de Arte). Escreva AGORA o BRIEF de arte desta demo (seu SOUL diz como).\n`
+      + `Lead: ${lead.nome || slug}. Pasta: demos/${slug}/ — ${fotos.length} foto(s) reais em img/ (${fotos.slice(0, 10).join(", ") || "nenhuma"}).\n`
+      + `1) Pesquise referencias AMPLAS DE VERDADE (WebSearch, min 4, awwwards.com PRIMEIRO, 21st.dev pra animacao, >=1 de FORA do nicho), 1 roubo concreto+URL de cada.\n`
+      + `2) Leia demos/_repetition-book.md e demos/_licoes-aprendidas.md e faca DIFERENTE das ultimas.\n`
+      + `3) Escreva demos/${slug}/BRIEF.md pelo BRIEF-TEMPLATE.md, preenchendo TUDO (conceito, hero_strategy, primary_visual_move, image_treatment, "motion_tier: Tn" literal, stack, paleta, tipografia, mapa de secoes, roubos com instrucao de implementacao). Nao deixe campo vazio.\n`
+      + `Responda so "BRIEF pronto" no fim.`;
+    // ate 2 tentativas: se o BRIEF nao passar no validate-brief, reinvoca o Nanami com os erros
+    let lastErr = "";
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      const msg = attempt === 1 ? basePrompt
+        : `${basePrompt}\n\nATENCAO: o BRIEF anterior FOI REPROVADO pelo validador. Corrija exatamente isto e reescreva demos/${slug}/BRIEF.md:\n${lastErr}`;
+      console.log(`Invocando o Nanami por gateway (tentativa ${attempt}) pra escrever demos/${slug}/BRIEF.md ...`);
+      const r = spawnSync("openclaw", ["agent", "--agent", "diretor-arte", "--message", msg, "--json", "--timeout", "600"], { encoding: "utf8", timeout: 660000 });
+      if (!existsSync(briefPath)) { lastErr = "BRIEF.md nao foi criado."; console.error(`Nanami nao escreveu o BRIEF (tentativa ${attempt}).`); continue; }
+      const vb = spawnSync("node", [vbPath, slug], { encoding: "utf8" });
+      if (vb.status === 0) { console.log((vb.stdout || "").trim()); console.log(`✅ BRIEF pronto e validado: ${briefPath}\nPROXIMO: Nobara escreve demos/${slug}/index.html DO BRIEF -> QA -> demo-publicar.`); return; }
+      lastErr = ((vb.stdout || "") + (vb.stderr || "")).trim();
+      console.error(`BRIEF reprovado no validate-brief (tentativa ${attempt}):\n${lastErr}`);
+    }
+    console.error("Nanami nao entregou um BRIEF valido em 2 tentativas. Cheque o gateway (openclaw agent) e o BRIEF-TEMPLATE.");
+    process.exit(1);
+  },
   async demo() {
     const { flags, rest } = parseFlags(args);
     if (!rest[0]) return console.error("uso: demo <place_id> [--site <url>] [--theme boutique|warm|bold|classic] [--anim aurora,textgen,marquee,parallax,hoverzoom,shimmer] [--headline ..] [--sobre ..] [--segmento ..] [--accent #hex] [--accent2 #hex]");
