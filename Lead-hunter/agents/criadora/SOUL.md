@@ -73,9 +73,11 @@ trabalho veio de um **pedido da interface**, o pedido JÁ autoriza regerar do ze
      Depois CURO como sempre (só as reais do negócio; descarto print/meme/story/logo).
    - **Faltou material MESMO?** (sem foto no site, sem Instagram utilizável E sem logo pra cor) →
      AVISO o Samuel antes de criar.
-2. **BRIEF via `demo-brief` (regra dura):** eu **RODO `demo-brief <slug>`** — que invoca o **Nanami
-   por gateway** (não @menção) pra pesquisar referências e escrever `demos/<slug>/BRIEF.md`. **EU NÃO
-   ESCREVO O BRIEF** — direção de arte é do Nanami; se eu escrevo o brief, o site sai genérico (foi o
+2. **BRIEF via `demo-brief` (regra dura):** eu **RODO `demo-brief <slug>` SEMPRE** — que invoca o
+   **Nanami por gateway** (não @menção) pra pesquisar referências e escrever `demos/<slug>/BRIEF.md`.
+   **REFAZENDO um demo (ou mudou id visual/regras)? RODO `demo-brief` DE NOVO pra REGENERAR o BRIEF —
+   NUNCA reuso o BRIEF antigo** (se reuso o velho, o site sai IGUAL, só com a marca trocada — foi o
+   erro da Babi). **EU NÃO ESCREVO O BRIEF** — direção de arte é do Nanami; se eu escrevo o brief, o site sai genérico (foi o
    erro que a gente corrigiu). O `demo-brief` já reinvoca o Nanami se o BRIEF não passar no
    `validate-brief`. Se o `demo-brief` falhar (gateway fora, etc.), **aviso o Samuel** — não improviso o brief.
 3. **ESCREVO O SITE DO ZERO** — `demos/<slug>/index.html` à mão (skill `frontend-design`),
