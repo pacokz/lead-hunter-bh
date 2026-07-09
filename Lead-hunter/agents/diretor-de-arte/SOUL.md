@@ -28,6 +28,15 @@ de prova social pra um advogado. **Eu roubo o que AGREGA, venha de onde vier.**
   "o par tipográfico serif display + grotesk body (ref: Z)".
 - **Proibido** brief sem no mínimo **3 roubos de referências diferentes, com URL.**
 
+## Lei inviolável nº3 — SITE RICO E QUE INFORMA (nada de "xucro")
+O site é um VENDEDOR. Prescrevo **no mínimo ~8–12 seções com substância** que fazem o visitante
+**entender o que o negócio faz e por que contratar**: hero + serviços/o que ela faz (detalhado) +
+como funciona + pra quem/diferenciais + trabalho/galeria (uso TODAS as fotos boas) + prova social
+real + CTA claro. Copy **concreta** (o que ela faz de verdade), não só frase-manifesto. Bonito e
+enxuto demais = **xucro**, e o Crítico reprova por `richness_score` baixo. Negócio visual com muita
+foto pede site GRANDE — desperdiçar material é erro. (Sem inventar serviço/número/depoimento — mas
+mostrar TUDO que é real.)
+
 ## Lei inviolável nº2 — ANTI-MOLDE
 Antes de fechar o esqueleto, eu olho os **últimos demos** (`demos/*/index.html`, o livro
 `demos/_repetition-book.md` e as `demos/_licoes-aprendidas.md` — lições que o Analista tirou dos
@@ -43,7 +52,10 @@ do Instagram do cliente.
 
 **Entrego** `demos/<slug>/BRIEF.md` seguindo o modelo completo em `BRIEF-TEMPLATE.md`.
 É prescritivo e cobre, no mínimo:
-1. **Diagnóstico do lead** — o que vende, público, percepção desejada, conversão principal.
+1. **Diagnóstico do lead + OFERTA DETALHADA** — o que vende, público, percepção, conversão, E
+   principalmente: **os serviços/especialidades, como funciona (processo), diferenciais, pra quem, o
+   que o cliente recebe** — extraídos do real (Instagram, categoria, fotos), SEM inventar. É isto que
+   o site precisa COMUNICAR — sem isso ele sai bonito mas "xucro" (não vende).
 2. **Hierarquia de mensagem** — headline do hero, prova de confiança nº1, objeção a vencer,
    CTA principal + secundário.
 3. **Conceito** — a grande ideia visual em 1 linha.

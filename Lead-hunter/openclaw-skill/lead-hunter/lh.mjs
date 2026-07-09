@@ -592,7 +592,7 @@ const run = {
       }
       try { unlinkSync(critPath); } catch {} // remove qualquer critique auto-escrito; so vale o do Critico
       console.log("Chamando o Critico (juiz independente) por gateway pra avaliar o site...");
-      const critMsg = `Julgue o demo "${slug}". Leia demos/${slug}/BRIEF.md e demos/${slug}/index.html, OLHE os screenshots demos/${slug}/_qa/desktop.png, mobile.png e tablet.png, e escreva demos/${slug}/_qa/critique.json no formato do seu SOUL (score, genericity_score, brief_execution_score, blockers, craft_issues, verdict). Seja impiedoso com generico. Responda so "avaliado" no fim.`;
+      const critMsg = `Julgue o demo "${slug}". Leia demos/${slug}/BRIEF.md e demos/${slug}/index.html, OLHE os screenshots demos/${slug}/_qa/desktop.png, mobile.png e tablet.png, e escreva demos/${slug}/_qa/critique.json no formato do seu SOUL (score, genericity_score, brief_execution_score, richness_score, missing_content, blockers, craft_issues, verdict). Seja impiedoso com GENERICO e com site XUCRO (poucas secoes / pouca info do que o negocio faz). Responda so "avaliado" no fim.`;
       const jc = spawnSync("openclaw", ["agent", "--agent", "critico", "--json", "--timeout", "300", "--message", critMsg], { encoding: "utf8", timeout: 340000 });
       if (!existsSync(critPath)) {
         console.error("PUBLICACAO BLOQUEADA — o Critico nao devolveu o veredito (_qa/critique.json). Saida:\n" + ((jc.stdout || "") + (jc.stderr || "")).slice(-500));
@@ -604,18 +604,21 @@ const run = {
       catch { console.error("_qa/critique.json invalido (JSON)."); logBlock("critico", "json invalido"); process.exit(1); }
       const gen = typeof crit.genericity_score === "number" ? crit.genericity_score : null;
       const exe = typeof crit.brief_execution_score === "number" ? crit.brief_execution_score : null;
+      const rich = typeof crit.richness_score === "number" ? crit.richness_score : null;
       const reprovado = crit.verdict === "reprovado" || (crit.blockers || []).length
         || (typeof crit.score === "number" && crit.score < 7)
-        || (gen !== null && gen >= 5) || (exe !== null && exe < 6);
+        || (gen !== null && gen >= 5) || (exe !== null && exe < 6)
+        || (rich !== null && rich < 6);
       if (reprovado) {
-        console.error(`PUBLICACAO BLOQUEADA PELO CRITICO — craft ${crit.score ?? "?"}/10, generico ${gen ?? "?"}/10, exec-brief ${exe ?? "?"}/10, veredito "${crit.verdict || "?"}".`);
+        console.error(`PUBLICACAO BLOQUEADA PELO CRITICO — craft ${crit.score ?? "?"}/10, generico ${gen ?? "?"}/10, exec-brief ${exe ?? "?"}/10, riqueza ${rich ?? "?"}/10, veredito "${crit.verdict || "?"}".`);
         if ((crit.blockers || []).length) console.error("Blockers:\n- " + crit.blockers.join("\n- "));
+        if ((crit.missing_content || []).length) console.error("Faltou do negocio: " + crit.missing_content.join("; "));
         if ((crit.craft_issues || []).length) console.error("Problemas: " + crit.craft_issues.join("; "));
         console.error("A Nobara refaz seguindo isto — o Critico e independente, nao afrouxe. (--force ignora, NAO recomendado.)");
         logBlock("critico", `craft ${crit.score}, gen ${gen}, exec ${exe}: ${(crit.craft_issues || crit.blockers || []).join("; ").slice(0, 200)}`);
         process.exit(1);
       }
-      console.log(`Critico (independente): craft ${crit.score ?? "?"}/10, generico ${gen ?? "?"}/10, exec-brief ${exe ?? "?"}/10 — APROVADO ✓`);
+      console.log(`Critico (independente): craft ${crit.score ?? "?"}/10, generico ${gen ?? "?"}/10, exec-brief ${exe ?? "?"}/10, riqueza ${rich ?? "?"}/10 — APROVADO ✓`);
       // ENFORCEMENT motion_tier x stack — three/GSAP so no tier que o BRIEF autorizou (guardrail mecanico)
       const briefPath = resolve(dir, "BRIEF.md");
       let tier = null;

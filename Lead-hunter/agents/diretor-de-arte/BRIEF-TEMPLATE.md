@@ -9,6 +9,16 @@
 - **Público principal:**
 - **Percepção desejada:** (premium · acessível · técnico · acolhedor · ousado · tradicional…)
 - **Conversão principal do site:** (WhatsApp · formulário · agendamento · orçamento · visita · compra)
+- **OFERTA DETALHADA (obrigatório — o site TEM que informar isto, senão sai "xucro"):** liste, com o
+  que dá pra saber do lead (Instagram, categoria Google, fotos, materiais — SEM inventar):
+  - **Serviços/especialidades** que ela oferece (o mais concreto possível — ex: casamento, pré-wedding,
+    ensaio; ou botox, harmonização, clareamento…). Cada um vira conteúdo no site.
+  - **Como funciona / o processo** (passos: primeiro contato → … → entrega).
+  - **Diferenciais** (estilo, método, o que a distingue).
+  - **Pra quem é** / quando procurar.
+  - **O que o cliente recebe** / o que está incluído.
+  > Regra: se dá pra saber isso do lead e o BRIEF/site NÃO coloca, o Crítico reprova por site raso.
+  > Não invente serviço/número/depoimento — mas EXTRAIA e MOSTRE tudo que é real.
 
 ## 2. Hierarquia de mensagem
 - **Mensagem principal do hero (headline):**
@@ -91,6 +101,13 @@
 
 ## 10. Mapa visual por seção (o esqueleto)
 > A ordem e a composição são o coração do anti-molde. Preencha seção a seção.
+> **RIQUEZA (regra dura):** o site tem que VENDER, não só ter mood bonito. Mapeie **no mínimo ~8–12
+> seções com SUBSTÂNCIA** que, juntas, façam o visitante entender **o que o negócio faz e por que
+> contratar**. Cubra pelo menos: **hero · o que ela faz/serviços (detalhado, da §1) · como funciona/
+> processo · pra quem/diferenciais · trabalho/galeria (use TODAS as fotos boas) · prova social real ·
+> CTA claro** — mais o que o conceito pedir. Cada seção com **copy concreta** (o que ela faz de
+> verdade), não frase-manifesto vaga. Site com 5–7 seções raras e pouca copy = **xucro → o Crítico
+> reprova**. Negócio visual com muitas fotos e poucas seções = material desperdiçado.
 
 | Ordem | Seção (type) | Variante | Objetivo | Imagem | Direção de copy | Referência que inspirou |
 |-------|--------------|----------|----------|--------|-----------------|-------------------------|
