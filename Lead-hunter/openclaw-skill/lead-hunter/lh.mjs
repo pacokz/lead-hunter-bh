@@ -431,10 +431,34 @@ const run = {
     console.log(`\nATENCAO: a cor_detectada e um PALPITE do codigo — confirme a cor REAL olhando o LOGO do lead antes de usar.`);
     console.log(`PROXIMO PASSO (Diretor de Arte -> Criadora):`);
     console.log(`  1. CURE as fotos (olhe cada uma; descarte logo/icone/stock) e confirme a cor real pelo logo.`);
+    console.log(`     >> POUCAS FOTOS ou lead SEM SITE (rede social)? Puxe do Instagram: demo-ig ${slug} <@handle> [qtd] (fotos reais em img/, prefixo ig-).`);
     console.log(`  2. NANAMI: pesquise referencias AMPLAS AGORA (WebSearch, min. 4) — os melhores sites de QUALQUER nicho`);
     console.log(`     (awwwards.com PRIMEIRO; depois land-book/recent.design). Animacao: 21st.dev primeiro. De cada uma, um ROUBO concreto com URL. Pelo menos 1 de FORA do nicho.`);
     console.log(`  3. NANAMI: escreva demos/${slug}/BRIEF.md pelo modelo BRIEF-TEMPLATE.md (passe o checklist, incluindo motion_tier + stack) — o site NAO nasce sem ele.`);
     console.log(`  4. NOBARA: escreva demos/${slug}/index.html DO ZERO (frontend-design) reimplementando o brief; stack conforme motion_tier (libs vendoradas em demos/_stack-kit/, guia em referencias/web-stack-motion.md) -> QA (check.py + qa-visual, escreva _qa/critique.json) -> demo-publicar ${slug} --scope balmor-s-projects.`);
+  },
+  async "demo-ig"() {
+    // baixa FOTOS REAIS do Instagram do lead (gallery-dl + cookie) — pra leads sem site / rede social,
+    // onde o demo-data --site nao acha foto. Salva em demos/<slug>/img/ com prefixo ig-.
+    const { rest } = parseFlags(args);
+    const slug = rest[0], alvo = rest[1], count = Number(rest[2]) || 12;
+    if (!slug || !alvo) return console.error("uso: demo-ig <slug> <@handle|url do perfil> [qtd=12]  (baixa fotos reais do Instagram pra img/)");
+    const dir = resolve(ROOT, slug);
+    if (!existsSync(dir)) return console.error(`Pasta da demo nao existe: ${dir}. Rode demo-data <place_id> antes.`);
+    if (!existsSync("/etc/openclaw/ig-cookies.txt")) return console.error("SEM COOKIE do Instagram (/etc/openclaw/ig-cookies.txt). Avise o Samuel pra reexportar o cookie do @leadhunter_bh.");
+    const imgDir = resolve(dir, "img"); mkdirSync(imgDir, { recursive: true });
+    const handle = alvo.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "");
+    const url = /^https?:\/\//i.test(alvo) ? alvo : `https://www.instagram.com/${handle}/`;
+    const before = readdirSync(imgDir).filter((f) => f.startsWith("ig-")).length;
+    console.log(`Baixando ate ${count} fotos de ${url} ...`);
+    const r = spawnSync("gallery-dl", ["--config", "/etc/openclaw/gallery-dl.conf", "--range", `1-${count}`, "-D", imgDir, url], { encoding: "utf8", timeout: 240000 });
+    const igs = readdirSync(imgDir).filter((f) => f.startsWith("ig-"));
+    if (!igs.length) {
+      console.error("Nenhuma foto baixada — provavel cookie expirado, perfil privado, ou handle errado:\n" + ((r.stderr || r.stdout || "").split("\n").slice(-6).join("\n")));
+      process.exit(1);
+    }
+    console.log(`OK — ${Math.max(igs.length - before, igs.length)} foto(s) do Instagram salvas em img/ (prefixo ig-). Total: ${igs.length}.`);
+    console.log(`NOBARA: CURE — fique so com as REAIS do negocio (fachada, equipe, resultado, ambiente); descarte print/meme/story/logo. Depois segue o fluxo normal.`);
   },
   async demo() {
     const { flags, rest } = parseFlags(args);
@@ -704,7 +728,7 @@ const run = {
     console.log(JSON.stringify(await api("POST", args[0], args[1] ? JSON.parse(args[1]) : undefined), null, 2));
   },
   help() {
-    console.log("Comandos: status | leads [N] | lead <id> | draft <id> | demo-pedidos | demo-pedido-status <id> <status> | demo-data <id> [--site] | demo-render <spec> | demo-similar <slug> | demo <id> [--flags] | demo-publicar <slug> | crm | promote | audit <id> | audit-run | score-run | get <path> | post <path> [json]");
+    console.log("Comandos: status | leads [N] | lead <id> | draft <id> | demo-pedidos | demo-pedido-status <id> <status> | demo-data <id> [--site] | demo-ig <slug> <@handle> [qtd] | demo-render <spec> | demo-similar <slug> | demo <id> [--flags] | demo-publicar <slug> | crm | promote | audit <id> | audit-run | score-run | get <path> | post <path> [json]");
   },
 };
 
