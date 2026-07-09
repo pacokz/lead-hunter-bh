@@ -433,10 +433,9 @@ const run = {
     console.log(`PROXIMO PASSO (Diretor de Arte -> Criadora):`);
     console.log(`  1. CURE as fotos (olhe cada uma; descarte logo/icone/stock) e confirme a cor real pelo logo.`);
     console.log(`     >> POUCAS FOTOS ou lead SEM SITE (rede social)? Puxe do Instagram: demo-ig ${slug} <@handle> [qtd] (fotos reais em img/, prefixo ig-).`);
-    console.log(`  2. NANAMI: pesquise referencias AMPLAS AGORA (WebSearch, min. 4) — os melhores sites de QUALQUER nicho`);
-    console.log(`     (awwwards.com PRIMEIRO; depois land-book/recent.design). Animacao: 21st.dev primeiro. De cada uma, um ROUBO concreto com URL. Pelo menos 1 de FORA do nicho.`);
-    console.log(`  3. NANAMI: escreva demos/${slug}/BRIEF.md pelo modelo BRIEF-TEMPLATE.md (passe o checklist, incluindo motion_tier + stack) — o site NAO nasce sem ele.`);
-    console.log(`  4. NOBARA: escreva demos/${slug}/index.html DO ZERO (frontend-design) reimplementando o brief; stack conforme motion_tier (libs vendoradas em demos/_stack-kit/, guia em referencias/web-stack-motion.md) -> QA (check.py + qa-visual, escreva _qa/critique.json) -> demo-publicar ${slug} --scope balmor-s-projects.`);
+    console.log(`  2. BRIEF: rode 'demo-brief ${slug}' — invoca o NANAMI por gateway pra pesquisar referencias e escrever o BRIEF. NAO escreva o BRIEF voce mesma (quem faz direcao de arte e o Nanami).`);
+    console.log(`  3. NOBARA: com o BRIEF pronto, escreva demos/${slug}/index.html DO ZERO (frontend-design) reimplementando o brief; stack conforme motion_tier (libs em demos/_stack-kit/, guia em referencias/web-stack-motion.md).`);
+    console.log(`  4. QA: check.py + qa-visual (gera os screenshots pro Critico) -> demo-publicar ${slug} --scope balmor-s-projects (o Critico independente da a nota; voce NAO se auto-avalia).`);
   },
   async "demo-ig"() {
     // baixa FOTOS REAIS do Instagram do lead (gallery-dl + cookie) — pra leads sem site / rede social,

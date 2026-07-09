@@ -55,10 +55,11 @@ trabalho veio de um **pedido da interface**, o pedido JÁ autoriza regerar do ze
      Depois CURO como sempre (só as reais do negócio; descarto print/meme/story/logo).
    - **Faltou material MESMO?** (sem foto no site, sem Instagram utilizável E sem logo pra cor) →
      AVISO o Samuel antes de criar.
-2. **BRIEF do Nanami.** Ele pesquisa referências amplas (cross-nicho) e escreve `demos/<slug>/BRIEF.md`
-   com: cor real, fotos curadas, refs (link + o que aproveitar), conceito, `hero_strategy`,
-   `image_treatment` e **`motion_tier` + `stack`**. **Sem `BRIEF.md` eu não escrevo o site.** Se
-   o brief não veio ou está vazio, cobro o Nanami.
+2. **BRIEF via `demo-brief` (regra dura):** eu **RODO `demo-brief <slug>`** — que invoca o **Nanami
+   por gateway** (não @menção) pra pesquisar referências e escrever `demos/<slug>/BRIEF.md`. **EU NÃO
+   ESCREVO O BRIEF** — direção de arte é do Nanami; se eu escrevo o brief, o site sai genérico (foi o
+   erro que a gente corrigiu). O `demo-brief` já reinvoca o Nanami se o BRIEF não passar no
+   `validate-brief`. Se o `demo-brief` falhar (gateway fora, etc.), **aviso o Samuel** — não improviso o brief.
 3. **ESCREVO O SITE DO ZERO** — `demos/<slug>/index.html` à mão (skill `frontend-design`),
    reimplementando cada "roubo" de referência do brief. Estrutura, hero, animação, tipografia e
    composição PRÓPRIAS. Aplico o `motion_tier`:
@@ -72,12 +73,13 @@ trabalho veio de um **pedido da interface**, o pedido JÁ autoriza regerar do ze
    - `python3 skills/verifica-interface/check.py demos/<slug>/index.html` — bugs objetivos
      (overflow, carrossel horizontal no mobile, stat "0", contraste, espaço morto, **erro de
      console**). Zero [ALTA].
-   - `python3 skills/verifica-interface/qa-visual.py demos/<slug>/index.html` — screenshots 3
-     viewports; avalio pela rubrica `QA-VISUAL.md` e escrevo `demos/<slug>/_qa/critique.json`
-     (nota craft 0–10 + blockers + `hero_strategy` + `image_treatment`). Nota < 7 ou blocker = refaço.
-   - **TESTE ANTI-VIBE-CODE** (`referencias/anti-vibe-code.md`): "se eu trocar o logo por um SaaS
-     de IA, o site ainda faz sentido?" Se SIM, é template → REFAZ. Listo 4+ coisas que só existem
-     por causa DESTE lead. Motion incluído: se o efeito sairia igual em qualquer site, tiro.
+   - `python3 skills/verifica-interface/qa-visual.py demos/<slug>/index.html` — gera os screenshots
+     (desktop/mobile/tablet) que o **Crítico** vai olhar. **EU NÃO me dou a própria nota** — quem
+     julga o craft é o **Crítico independente** (o `demo-publicar` chama ele por gateway e ele escreve
+     o `critique.json`). Eu faço meu próprio olhar crítico enquanto trabalho, mas o veredito não é meu.
+   - **TESTE ANTI-VIBE-CODE** (`referencias/anti-vibe-code.md`) — enquanto construo: "se eu trocar o
+     logo por um SaaS de IA, o site ainda faz sentido?" Se SIM, é genérico → refaço ANTES de mandar
+     pro Crítico (ele vai reprovar de qualquer jeito, e reprovar no fim = reescrever tudo).
 5. **Abro pro Samuel** — ele revê e aprova.
 6. **Publico** — `demo-publicar <slug> --scope balmor-s-projects`. Ele roda TODOS os gates
    (template, similaridade, movimento, números, `check.py`, craft score) e sobe a pasta inteira
