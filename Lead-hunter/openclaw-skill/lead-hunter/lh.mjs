@@ -583,28 +583,40 @@ const run = {
         process.exit(1);
       }
       console.log((vg.stdout || "").trim());
-      // GATE CRAFT (nivel 2) — revisao visual com NOTA: exige _qa/critique.json da rubrica QA-VISUAL.md
+      // GATE CRAFT (nivel 2) — JUIZ INDEPENDENTE: o agente Critico (terceiro papel, != Nanami/Nobara)
+      // avalia por gateway e escreve o veredito. Acaba o "corrige a propria prova" (craft auto-avaliado).
       const critPath = resolve(dir, "_qa", "critique.json");
+      const qaDir = resolve(dir, "_qa");
+      if (!existsSync(resolve(qaDir, "desktop.png"))) { // garante screenshots pro Critico OLHAR
+        const qv = resolve(dirname(fileURLToPath(import.meta.url)), "..", "verifica-interface", "qa-visual.py");
+        spawnSync(PY, [qv, resolve(dir, "index.html")], { encoding: "utf8" });
+      }
+      try { unlinkSync(critPath); } catch {} // remove qualquer critique auto-escrito; so vale o do Critico
+      console.log("Chamando o Critico (juiz independente) por gateway pra avaliar o site...");
+      const critMsg = `Julgue o demo "${slug}". Leia demos/${slug}/BRIEF.md e demos/${slug}/index.html, OLHE os screenshots demos/${slug}/_qa/desktop.png, mobile.png e tablet.png, e escreva demos/${slug}/_qa/critique.json no formato do seu SOUL (score, genericity_score, brief_execution_score, blockers, craft_issues, verdict). Seja impiedoso com generico. Responda so "avaliado" no fim.`;
+      const jc = spawnSync("openclaw", ["agent", "--agent", "critico", "--json", "--timeout", "300", "--message", critMsg], { encoding: "utf8", timeout: 340000 });
       if (!existsSync(critPath)) {
-        console.error("PUBLICACAO BLOQUEADA — falta a REVISAO VISUAL. Rode qa-visual (screenshots desktop/mobile),");
-        console.error("avalie pela rubrica QA-VISUAL.md e escreva demos/" + slug + "/_qa/critique.json:");
-        console.error('  {"score": 0-10, "blockers": ["bug grave..."], "craft_issues": ["..."], "hero_strategy": "..."}');
+        console.error("PUBLICACAO BLOQUEADA — o Critico nao devolveu o veredito (_qa/critique.json). Saida:\n" + ((jc.stdout || "") + (jc.stderr || "")).slice(-500));
+        logBlock("critico", "sem critique.json");
         process.exit(1);
       }
       let crit;
       try { crit = JSON.parse(readFileSync(critPath, "utf8")); }
-      catch { console.error("_qa/critique.json invalido (JSON)."); process.exit(1); }
-      if ((crit.blockers || []).length) {
-        console.error("PUBLICACAO BLOQUEADA — blockers na revisao visual:\n- " + crit.blockers.join("\n- "));
+      catch { console.error("_qa/critique.json invalido (JSON)."); logBlock("critico", "json invalido"); process.exit(1); }
+      const gen = typeof crit.genericity_score === "number" ? crit.genericity_score : null;
+      const exe = typeof crit.brief_execution_score === "number" ? crit.brief_execution_score : null;
+      const reprovado = crit.verdict === "reprovado" || (crit.blockers || []).length
+        || (typeof crit.score === "number" && crit.score < 7)
+        || (gen !== null && gen >= 5) || (exe !== null && exe < 6);
+      if (reprovado) {
+        console.error(`PUBLICACAO BLOQUEADA PELO CRITICO — craft ${crit.score ?? "?"}/10, generico ${gen ?? "?"}/10, exec-brief ${exe ?? "?"}/10, veredito "${crit.verdict || "?"}".`);
+        if ((crit.blockers || []).length) console.error("Blockers:\n- " + crit.blockers.join("\n- "));
+        if ((crit.craft_issues || []).length) console.error("Problemas: " + crit.craft_issues.join("; "));
+        console.error("A Nobara refaz seguindo isto — o Critico e independente, nao afrouxe. (--force ignora, NAO recomendado.)");
+        logBlock("critico", `craft ${crit.score}, gen ${gen}, exec ${exe}: ${(crit.craft_issues || crit.blockers || []).join("; ").slice(0, 200)}`);
         process.exit(1);
       }
-      if (typeof crit.score === "number" && crit.score < 7) {
-        console.error(`PUBLICACAO BLOQUEADA — craft score ${crit.score}/10 (< 7). Motivos: ${(crit.craft_issues || []).join("; ")}.`);
-        console.error("Melhore hierarquia/espacamento/composicao e reavalie. (--force ignora, NAO recomendado.)");
-        logBlock("craft", `score ${crit.score}/10: ${(crit.craft_issues || []).join("; ")}`);
-        process.exit(1);
-      }
-      console.log(`Revisao visual: craft ${crit.score ?? "?"}/10 ✓`);
+      console.log(`Critico (independente): craft ${crit.score ?? "?"}/10, generico ${gen ?? "?"}/10, exec-brief ${exe ?? "?"}/10 — APROVADO ✓`);
       // ENFORCEMENT motion_tier x stack — three/GSAP so no tier que o BRIEF autorizou (guardrail mecanico)
       const briefPath = resolve(dir, "BRIEF.md");
       let tier = null;
