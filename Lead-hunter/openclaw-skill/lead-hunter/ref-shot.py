@@ -28,6 +28,24 @@ UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
 DISMISS = ["#onetrust-accept-btn-handler", "button:has-text('Accept')", "button:has-text('Aceitar')",
            "button:has-text('I agree')", "button:has-text('Concordo')", "button:has-text('Got it')",
            "button:has-text('OK')", "[aria-label*='accept' i]", "[class*='accept' i]"]
+# assinaturas de pagina de BLOQUEIO/erro (captura vira falso-positivo se nao detectar)
+BLOCK_SIGS = ["upstream connect error", "reset before headers", "connection timeout",
+              "verificacao de seguranca", "verificação de segurança", "confirme que e humano",
+              "confirme que é humano", "verify you are human", "checking your browser",
+              "just a moment", "attention required", "ray id", "access denied", "acesso negado",
+              "403 forbidden", "enable javascript", "please enable js", "captcha",
+              "are you a robot", "bot protection", "you have been blocked", "cf-browser-verification"]
+
+def blocked(title, text):
+    """True se a pagina renderizada e um muro de bloqueio/erro (nao a ref de verdade)."""
+    blob = (title + "\n" + text).lower()
+    if len(text.strip()) < 120:  # pagina praticamente vazia
+        return "pagina vazia/thin (<120 chars)"
+    if len(text.strip()) < 1500:  # curta E com assinatura de bloqueio = muro
+        for s in BLOCK_SIGS:
+            if s in blob:
+                return f"bloqueio: '{s}'"
+    return None
 manifest = []
 with sync_playwright() as p:
     b = p.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
@@ -48,8 +66,17 @@ with sync_playwright() as p:
                 except Exception: pass
             pg.mouse.wheel(0, 1400); pg.wait_for_timeout(700)  # dispara lazy
             pg.mouse.wheel(0, -1400); pg.wait_for_timeout(300)
-            pg.screenshot(path=str(png))  # viewport (topo ~2200px): hero + 1as secoes
-            ok = png.exists() and png.stat().st_size > 3000
+            try:
+                title = pg.title() or ""
+                text = pg.evaluate("() => document.body ? document.body.innerText : ''") or ""
+            except Exception:
+                title, text = "", ""
+            bl = blocked(title, text)
+            if bl:  # muro de bloqueio/erro — nao serve de referencia
+                err = bl
+            else:
+                pg.screenshot(path=str(png))  # viewport (topo ~2200px): hero + 1as secoes
+                ok = png.exists() and png.stat().st_size > 3000
         except Exception as ex:
             err = str(ex).splitlines()[0][:140]
         pg.close()
