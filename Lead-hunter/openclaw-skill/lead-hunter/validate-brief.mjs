@@ -37,10 +37,18 @@ if (filled.length < 700) fails.push(`BRIEF curto demais (${filled.length} chars)
 const emptyRows = (t.match(/^\|[^\n]*\|\s*\|\s*\|\s*$/gm) || []).length;
 if (emptyRows >= 3) fails.push(`${emptyRows} linha(s) de tabela em branco — preencha (fotos/refs/mapa de secoes).`);
 
-// (soft) motion_tier declarado — nao bloqueia (campo novo), mas avisa. Formato canonico "motion_tier: Tn"
-// (a lista de opcoes do template NAO casa com ':' colado, entao brief que so copiou o template nao "tem tier").
-const hasTier = /motion[_ ]?tier\s*[:=]\s*`?\s*T[0-3]\b/i.test(t);
-if (!hasTier) console.error("AVISO: motion_tier nao declarado no formato 'motion_tier: Tn'. O Nanami deve escolher o nivel de movimento (T0..T3).");
+// (4) PROFUNDIDADE DE CONCEITO (hard) — o que separa BRIEF de direcao de arte de BRIEF raso.
+// Os campos estrategicos tem que estar DECLARADOS COM VALOR (nao so o rotulo do template vazio).
+if (!/motion[_ ]?tier\s*[:=]\s*`?\s*T[0-3]\b/i.test(t))
+  fails.push("motion_tier nao declarado no formato canonico 'motion_tier: Tn' (T0..T3). Os gates leem isso.");
+if (!/hero[_ ]?strategy\s*[:=]\s*`?\s*\S{3,}/i.test(t))
+  fails.push("hero_strategy nao declarado COM VALOR (ex: 'hero_strategy: manifesto'). Sem estrategia de hero o site sai generico.");
+if (!/\bstack\s*[:=]\s*`?\s*\S{3,}/i.test(t))
+  fails.push("stack nao declarada (ex: 'stack: css-only' ou 'stack: gsap') — coerente com o motion_tier.");
+if (!/image[_ ]?treatment/i.test(t))
+  fails.push("image_treatment nao declarado — COMO a imagem entra (materialmente diferente das ultimas).");
+if (!/primary[_ ]?visual[_ ]?move/i.test(t))
+  fails.push("primary_visual_move nao declarado — o gesto visual que carrega o site.");
 
 if (fails.length) {
   console.error("BRIEF INCOMPLETO — publicacao bloqueada:\n- " + fails.join("\n- "));
