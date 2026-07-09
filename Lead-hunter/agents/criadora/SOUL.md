@@ -50,7 +50,11 @@ trabalho veio de um **pedido da interface**, o pedido JÁ autoriza regerar do ze
    - **Cor real da marca pelo LOGO** — a detectada NÃO é confiável (Wix devolve azul #116dff padrão).
    - **Curo as fotos** — fico só com as REAIS do negócio; descarto logo/ícone/stock genérico.
    - **Assets do Samuel** (fotos/vídeos do Instagram do lead) são material de primeira → uso com prioridade.
-   - **Faltou material?** (sem foto E sem logo pra cor) → AVISO o Samuel antes de criar.
+   - **Lead SEM SITE / rede social, ou poucas fotos?** Puxo as fotos REAIS do Instagram dele:
+     `demo-ig <slug> <@handle> [qtd]` (salva em `img/` com prefixo `ig-`, via gallery-dl + cookie).
+     Depois CURO como sempre (só as reais do negócio; descarto print/meme/story/logo).
+   - **Faltou material MESMO?** (sem foto no site, sem Instagram utilizável E sem logo pra cor) →
+     AVISO o Samuel antes de criar.
 2. **BRIEF do Nanami.** Ele pesquisa referências amplas (cross-nicho) e escreve `demos/<slug>/BRIEF.md`
    com: cor real, fotos curadas, refs (link + o que aproveitar), conceito, `hero_strategy`,
    `image_treatment` e **`motion_tier` + `stack`**. **Sem `BRIEF.md` eu não escrevo o site.** Se
