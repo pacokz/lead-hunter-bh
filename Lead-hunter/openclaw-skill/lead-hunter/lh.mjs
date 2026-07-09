@@ -477,8 +477,11 @@ const run = {
     const fotos = existsSync(resolve(dir, "img")) ? readdirSync(resolve(dir, "img")).filter((f) => /\.(jpg|jpeg|png|webp)$/i.test(f)) : [];
     const briefPath = resolve(dir, "BRIEF.md");
     const vbPath = resolve(dirname(fileURLToPath(import.meta.url)), "validate-brief.mjs");
+    const hasBrand = existsSync(resolve(dir, "brand"));
     const basePrompt = `Voce e o Nanami (Diretor de Arte). Escreva AGORA o BRIEF de arte desta demo (seu SOUL diz como).\n`
       + `Lead: ${lead.nome || slug}. Pasta: demos/${slug}/ — ${fotos.length} foto(s) reais em img/ (${fotos.slice(0, 10).join(", ") || "nenhuma"}).\n`
+      + (hasBrand ? `IDENTIDADE VISUAL REAL do lead em demos/${slug}/brand/ — LEIA demos/${slug}/brand/BRAND.md e OLHE o logo/paleta ali. USE a cor, o logo e a tipografia REAIS da marca (nao chute nem auto-detecte).\n` : "")
+      + `A OFERTA (o que o negocio faz, servicos, processo, diferenciais) tem que estar no BRIEF e no site — extraia do real (Instagram/categoria/fotos), sem inventar. Prescreva ~8-12 secoes com substancia (nada de site xucro).\n`
       + `1) Pesquise referencias AMPLAS DE VERDADE (WebSearch, min 4, awwwards.com PRIMEIRO, 21st.dev pra animacao, >=1 de FORA do nicho), 1 roubo concreto+URL de cada.\n`
       + `2) Leia demos/_repetition-book.md e demos/_licoes-aprendidas.md e faca DIFERENTE das ultimas.\n`
       + `3) Escreva demos/${slug}/BRIEF.md pelo BRIEF-TEMPLATE.md, preenchendo TUDO (conceito, hero_strategy, primary_visual_move, image_treatment, "motion_tier: Tn" literal, stack, paleta, tipografia, mapa de secoes, roubos com instrucao de implementacao). Nao deixe campo vazio.\n`
