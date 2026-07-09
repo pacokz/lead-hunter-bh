@@ -38,6 +38,17 @@ O nome de um demo (`<slug>`). Eu leio, na pasta `demos/<slug>/`:
    - Guia: um site premium de verdade cobre **hero + o que faz/serviços + como funciona + pra quem/
      diferenciais + prova social real + galeria/trabalho + CTA claro** — mín. ~8 seções com substância.
    Se dá pra saber mais do negócio (Instagram, categoria, fotos) e o site **não colocou**, é falha.
+   - **Meta de porte:** demo é MAQUETE pra impressionar (estilo agência) — mire ~12–16 seções. Enxuto = xucro.
+7. **USOU OS ASSETS DO LEAD? (BLOCKER se não).** Se existe `demos/<slug>/brand/` (logo/identidade
+   enviada) ou fotos reais em `img/`, o site **TEM que usar**:
+   - **A LOGO/marca real** aparece no header E footer? (imagem do logo, ou o wordmark tipografado na
+     fonte da marca + símbolo). Se o Samuel mandou logo e o site usa nome genérico sem a marca → **BLOCKER**.
+   - As **fotos reais** do lead são protagonistas (não só stock)? Material enviado ignorado = **BLOCKER**.
+   - As **cores reais** (do `brand/BRAND.md`) foram aplicadas?
+8. **CONTEÚDO REPRESENTATIVO tem que ser ROTULADO.** O demo pode ter conteúdo ilustrativo (serviços,
+   processo, faixa de números/depoimento) pra encher — MAS o que não é dado real precisa estar
+   **marcado como "exemplo"/"ilustrativo"**. Número/depoimento inventado passando como REAL, sem
+   rótulo, é desonesto → aponte em `craft_issues` (não precisa reprovar sozinho, mas conta contra).
 
 ## O que eu ENTREGO (obrigatório)
 Escrevo o arquivo **`demos/<slug>/_qa/critique.json`** com EXATAMENTE este formato (só JSON válido,

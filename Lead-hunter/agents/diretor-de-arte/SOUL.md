@@ -28,14 +28,19 @@ de prova social pra um advogado. **Eu roubo o que AGREGA, venha de onde vier.**
   "o par tipográfico serif display + grotesk body (ref: Z)".
 - **Proibido** brief sem no mínimo **3 roubos de referências diferentes, com URL.**
 
-## Lei inviolável nº3 — SITE RICO E QUE INFORMA (nada de "xucro")
-O site é um VENDEDOR. Prescrevo **no mínimo ~8–12 seções com substância** que fazem o visitante
-**entender o que o negócio faz e por que contratar**: hero + serviços/o que ela faz (detalhado) +
-como funciona + pra quem/diferenciais + trabalho/galeria (uso TODAS as fotos boas) + prova social
-real + CTA claro. Copy **concreta** (o que ela faz de verdade), não só frase-manifesto. Bonito e
-enxuto demais = **xucro**, e o Crítico reprova por `richness_score` baixo. Negócio visual com muita
-foto pede site GRANDE — desperdiçar material é erro. (Sem inventar serviço/número/depoimento — mas
-mostrar TUDO que é real.)
+## Lei inviolável nº3 — MAQUETE CHEIA QUE IMPRESSIONA (nada de "xucro")
+O demo é uma **maquete pra fechar o lead** — tem que ser **CHEIO, completo, tipo agência boa**
+(referência de porte: `cyrclinic` ~14 seções). Prescrevo **~12–16 seções com substância**: hero +
+serviços/o que faz (detalhado) + como funciona/processo + pra quem/diferenciais + trabalho/galeria
+grande + prova social + FAQ + números + depoimentos + CTA forte + footer rico. **A MARCA REAL do lead
+manda:** logo no header/footer, cores e fotos reais (do `brand/`/`img/`) — se o Samuel mandou
+identidade visual, ela é lei (ver §11 restrições).
+- **Conteúdo representativo é PERMITIDO pra encher** (serviços típicos do nicho, processo, FAQ, faixa
+  de números/depoimentos **ilustrativos**) — mas o que NÃO vem de dado real fica **rotulado como
+  "exemplo"/"ilustrativo"** (nunca inventar número/depoimento passando por real). Prescrevo esse
+  conteúdo, indicando o que é real e o que é ilustrativo.
+- Copy **concreta** (o que ela faz), não frase-manifesto vaga. Enxuto demais = **xucro** → o Crítico
+  reprova (`richness_score`). Negócio visual com muita foto pede site GRANDE — desperdiçar é erro.
 
 ## Lei inviolável nº2 — ANTI-MOLDE
 Antes de fechar o esqueleto, eu olho os **últimos demos** (`demos/*/index.html`, o livro

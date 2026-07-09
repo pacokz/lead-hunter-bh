@@ -480,8 +480,8 @@ const run = {
     const hasBrand = existsSync(resolve(dir, "brand"));
     const basePrompt = `Voce e o Nanami (Diretor de Arte). Escreva AGORA o BRIEF de arte desta demo (seu SOUL diz como).\n`
       + `Lead: ${lead.nome || slug}. Pasta: demos/${slug}/ — ${fotos.length} foto(s) reais em img/ (${fotos.slice(0, 10).join(", ") || "nenhuma"}).\n`
-      + (hasBrand ? `IDENTIDADE VISUAL REAL do lead em demos/${slug}/brand/ — LEIA demos/${slug}/brand/BRAND.md e OLHE o logo/paleta ali. USE a cor, o logo e a tipografia REAIS da marca (nao chute nem auto-detecte).\n` : "")
-      + `A OFERTA (o que o negocio faz, servicos, processo, diferenciais) tem que estar no BRIEF e no site — extraia do real (Instagram/categoria/fotos), sem inventar. Prescreva ~8-12 secoes com substancia (nada de site xucro).\n`
+      + (hasBrand ? `IDENTIDADE VISUAL REAL em demos/${slug}/brand/ — LEIA o BRAND.md e OLHE logo/paleta. USE a cor/logo/tipografia REAIS: a LOGO tem que aparecer no HEADER e no FOOTER do site (imagem, ou o wordmark tipografado na fonte da marca + o simbolo). Nao chute cor nem use nome generico.\n` : "")
+      + `MAQUETE CHEIA (impressiona, estilo agencia, ref cyrclinic ~14 secoes): prescreva ~12-16 secoes com substancia (serviços/o que faz + como funciona + galeria grande + diferenciais + prova social + FAQ + numeros + CTA). A OFERTA (o que o negocio faz) tem que ficar clara. Conteudo representativo pra encher e OK, mas ROTULE o ilustrativo como "exemplo" (nunca numero/depoimento inventado como real). Enxuto = xucro = reprovado.\n`
       + `1) Pesquise referencias AMPLAS DE VERDADE (WebSearch, min 4, awwwards.com PRIMEIRO, 21st.dev pra animacao, >=1 de FORA do nicho), 1 roubo concreto+URL de cada.\n`
       + `2) Leia demos/_repetition-book.md e demos/_licoes-aprendidas.md e faca DIFERENTE das ultimas.\n`
       + `3) Escreva demos/${slug}/BRIEF.md pelo BRIEF-TEMPLATE.md, preenchendo TUDO (conceito, hero_strategy, primary_visual_move, image_treatment, "motion_tier: Tn" literal, stack, paleta, tipografia, mapa de secoes, roubos com instrucao de implementacao). Nao deixe campo vazio.\n`

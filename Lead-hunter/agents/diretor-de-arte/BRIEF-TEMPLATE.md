@@ -18,7 +18,10 @@
   - **Pra quem é** / quando procurar.
   - **O que o cliente recebe** / o que está incluído.
   > Regra: se dá pra saber isso do lead e o BRIEF/site NÃO coloca, o Crítico reprova por site raso.
-  > Não invente serviço/número/depoimento — mas EXTRAIA e MOSTRE tudo que é real.
+  > **Política de maquete (opção 3):** EXTRAIA e mostre tudo que é REAL; e pode COMPLETAR com conteúdo
+  > **representativo** (serviços típicos, processo, FAQ, faixa de números/depoimentos ilustrativos) pra
+  > encher e impressionar — mas marque o que é ilustrativo como **"exemplo"** (nunca passe número/
+  > depoimento inventado como real). A marca/logo/cores/fotos REAIS entram sempre que existem.
 
 ## 2. Hierarquia de mensagem
 - **Mensagem principal do hero (headline):**
@@ -101,13 +104,13 @@
 
 ## 10. Mapa visual por seção (o esqueleto)
 > A ordem e a composição são o coração do anti-molde. Preencha seção a seção.
-> **RIQUEZA (regra dura):** o site tem que VENDER, não só ter mood bonito. Mapeie **no mínimo ~8–12
-> seções com SUBSTÂNCIA** que, juntas, façam o visitante entender **o que o negócio faz e por que
-> contratar**. Cubra pelo menos: **hero · o que ela faz/serviços (detalhado, da §1) · como funciona/
-> processo · pra quem/diferenciais · trabalho/galeria (use TODAS as fotos boas) · prova social real ·
-> CTA claro** — mais o que o conceito pedir. Cada seção com **copy concreta** (o que ela faz de
-> verdade), não frase-manifesto vaga. Site com 5–7 seções raras e pouca copy = **xucro → o Crítico
-> reprova**. Negócio visual com muitas fotos e poucas seções = material desperdiçado.
+> **RIQUEZA (regra dura — maquete cheia estilo agência, ref: cyrclinic ~14 seções):** mapeie **~12–16
+> seções com SUBSTÂNCIA** que façam o visitante entender **o que o negócio faz e por que contratar** E
+> impressionem. Cubra: **header com LOGO REAL · hero · o que ela faz/serviços (detalhado, da §1) · como
+> funciona/processo · pra quem/diferenciais · trabalho/galeria grande (TODAS as fotos boas) · prova
+> social/depoimentos · números · FAQ · CTA forte · footer com logo**. Copy **concreta**, não manifesto
+> vago. Conteúdo representativo pra encher é OK, **rotulado como "exemplo"** (§1). Site com 5–7 seções
+> raras = **xucro → o Crítico reprova**. Marca real (logo/cores/fotos) sempre que existir.
 
 | Ordem | Seção (type) | Variante | Objetivo | Imagem | Direção de copy | Referência que inspirou |
 |-------|--------------|----------|----------|--------|-----------------|-------------------------|
