@@ -594,10 +594,25 @@ const run = {
         console.error("Falha no deploy:\n" + out.slice(-700));
       process.exit(1);
     }
+    // DESLIGA a Deployment Protection do projeto — projetos novos nascem protegidos (login da
+    // Vercel) por padrao no time; sem isto o demo vai pro lead atras de tela de login.
+    let pjson = {};
+    try { pjson = JSON.parse(readFileSync(resolve(dir, ".vercel", "project.json"), "utf8")); } catch {}
+    if (process.env.VERCEL_TOKEN && pjson.projectId) {
+      try {
+        await fetch(`https://api.vercel.com/v9/projects/${pjson.projectId}${pjson.orgId ? `?teamId=${pjson.orgId}` : ""}`, {
+          method: "PATCH",
+          headers: { Authorization: `Bearer ${process.env.VERCEL_TOKEN}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ ssoProtection: null }),
+          signal: AbortSignal.timeout(15000),
+        });
+        console.log("Deployment Protection desligada (demo publica, sem login).");
+        await new Promise((r) => setTimeout(r, 2500)); // propaga antes do check de 200
+      } catch (e) { console.log(`(aviso: nao consegui desligar a protecao: ${(e && e.message) || e})`); }
+    }
     // CHECK HTTP 200 — confirma que o link REALMENTE abre antes de dar como publicado.
     // (pega alias quebrado/protegido tipo o 307 do CYR — deploy sobe mas o site nao abre.)
-    let pname = null;
-    try { pname = JSON.parse(readFileSync(resolve(dir, ".vercel", "project.json"), "utf8")).projectName; } catch {}
+    const pname = pjson.projectName || null;
     const liveUrl = pname ? `https://${pname}.vercel.app` : url;
     let live200 = false, lastStatus = "sem resposta";
     for (let i = 0; i < 5; i++) {

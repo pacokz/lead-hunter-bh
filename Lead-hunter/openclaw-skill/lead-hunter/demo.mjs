@@ -4,10 +4,15 @@
 // Base: skill frontend-design + 21st.dev/Aceternity (reimplementado vanilla) + referências.
 
 export function slugify(name) {
-  return (name || "negocio")
+  let s = (name || "negocio")
     .toLowerCase()
     .normalize("NFD").replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40) || "negocio";
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+  // cap CURTO (Vercel trunca subdominio de nome longo -> alias {name}.vercel.app quebra/404).
+  // corta no fim de uma palavra e TIRA hifen das pontas DEPOIS do corte (o bug do "...-e-").
+  if (s.length > 32) s = s.slice(0, 32).replace(/-[^-]*$/, "");
+  s = s.replace(/^-+|-+$/g, "");
+  return s || "negocio";
 }
 
 export function waLink(phone) {
