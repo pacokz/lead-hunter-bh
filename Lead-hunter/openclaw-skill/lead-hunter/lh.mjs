@@ -4,7 +4,7 @@ import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, unlink
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { homedir } from "os";
-import { spawnSync } from "child_process";
+import { spawnSync, spawn } from "child_process";
 import { gerarDemo, slugify, waLink, bairro } from "./demo.mjs";
 import { renderSpec } from "./render.mjs";
 const BASE = process.env.LH_API || "http://localhost:8000";
@@ -13,6 +13,35 @@ const PY = process.platform === "win32" ? "python" : "python3"; // VPS Linux so 
 // uploads do GERAR SITE (fotos/videos que o Samuel sobe pela interface, por place_id)
 const UPLOADS = process.env.DEMO_UPLOADS_DIR
   || (process.platform === "win32" ? resolve(ROOT, "..", "demo-uploads") : "/home/hermes/.openclaw/demo-uploads");
+
+// A Nobara dispara o demo-brief com nohup e ENCERRA o turno dela. Nada no OpenClaw notifica
+// conclusao de processo destacado, e o HEARTBEAT.md dela e vazio de proposito — ou seja, sem isto
+// aqui ela nunca sabe que o BRIEF ficou pronto e o "te aviso" nunca acontece.
+// Desacoplado (detached + unref): o demo-brief termina na hora, sem esperar ela escrever o site.
+function avisarNobara(texto) {
+  let key = null;
+  try {
+    const ls = spawnSync("openclaw", ["sessions", "list", "--agent", "criadora", "--json"], { encoding: "utf8", timeout: 60000 });
+    const j = JSON.parse(ls.stdout || "{}");
+    const arr = Array.isArray(j) ? j : j.sessions || [];
+    key = arr
+      .map((s) => ({ k: s.key || s.sessionKey || "", u: Number(s.updatedAt || s.lastActivityAt || 0) }))
+      .filter((s) => s.k.startsWith("agent:criadora:discord:"))
+      .sort((a, b) => b.u - a.u)[0]?.k || null;
+  } catch {}
+  // Sem sessao do Discord nao ha pra onde entregar: avisa no log em vez de falhar silenciosamente.
+  if (!key) {
+    console.error("AVISO: nao achei a sessao de Discord da Nobara — ela NAO vai ser notificada. Chame ela na mao.");
+    return;
+  }
+  const args = ["agent", "--agent", "criadora", "--session-key", key, "--message", texto, "--deliver", "--timeout", "1800"];
+  try {
+    spawn("openclaw", args, { detached: true, stdio: "ignore" }).unref();
+    console.log(`Nobara notificada por gateway (${key}).`);
+  } catch (e) {
+    console.error(`Falha ao notificar a Nobara: ${e.message}`);
+  }
+}
 
 // parser simples de flags --chave valor / --chave=valor
 function parseFlags(arr) {
@@ -527,11 +556,27 @@ const run = {
       const r = spawnSync("openclaw", ["agent", "--agent", "diretor-arte", "--message", msg, "--json", "--timeout", "600"], { encoding: "utf8", timeout: 660000 });
       if (!existsSync(briefPath)) { lastErr = "BRIEF.md nao foi criado."; console.error(`Nanami nao escreveu o BRIEF (tentativa ${attempt}).`); continue; }
       const vb = spawnSync("node", [vbPath, slug], { encoding: "utf8" });
-      if (vb.status === 0) { console.log((vb.stdout || "").trim()); console.log(`✅ BRIEF pronto e validado: ${briefPath}\nPROXIMO: Nobara escreve demos/${slug}/index.html DO BRIEF -> QA -> demo-publicar.`); return; }
+      if (vb.status === 0) {
+        console.log((vb.stdout || "").trim());
+        console.log(`✅ BRIEF pronto e validado: ${briefPath}\nPROXIMO: Nobara escreve demos/${slug}/index.html DO BRIEF -> QA -> demo-publicar.`);
+        avisarNobara(
+          `O BRIEF de "${slug}" ficou PRONTO e passou no validate-brief (o Nanami entregou). ` +
+          `Leia demos/${slug}/BRIEF.md e OLHE os refs/NN.png citados nele, e siga o fluxo: escreva demos/${slug}/index.html DO ZERO a partir do BRIEF ` +
+          `(logo real no header e no footer), rode o QA e me chame pra aprovar antes de publicar. ` +
+          `Avise o Samuel no Discord que voce comecou e depois quando estiver pronto pra ele olhar.`
+        );
+        return;
+      }
       lastErr = ((vb.stdout || "") + (vb.stderr || "")).trim();
       console.error(`BRIEF reprovado no validate-brief (tentativa ${attempt}):\n${lastErr}`);
     }
     console.error("Nanami nao entregou um BRIEF valido em 2 tentativas. Cheque o gateway (openclaw agent) e o BRIEF-TEMPLATE.");
+    // Falha tambem precisa avisar: sem isto ela espera pra sempre por um BRIEF que nunca vem.
+    avisarNobara(
+      `O demo-brief de "${slug}" FALHOU: o Nanami nao entregou um BRIEF valido em 2 tentativas. ` +
+      `Ultimo erro do validate-brief: ${(lastErr || "(sem detalhe)").slice(0, 600)}. ` +
+      `NAO escreva o BRIEF voce mesma. Avise o Samuel no Discord que o brief falhou, com esse motivo, e espere ele decidir.`
+    );
     process.exit(1);
   },
   async demo() {
