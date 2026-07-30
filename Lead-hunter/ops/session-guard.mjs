@@ -78,11 +78,19 @@ function salvarEstado(e) {
 // A sessão da CLI que o OpenClaw vai retomar. null = sessão nova no próximo turno (nada a fazer).
 function bindingAtual(agentId) {
   const p = resolve(OC, "agents", agentId, "sessions", "sessions.json");
+  let bruto;
+  try {
+    bruto = readFileSync(p, "utf8");
+  } catch (e) {
+    // Agente recem-criado ainda nao tem sessions.json. Distinguir isso de arquivo corrompido:
+    // log que mente e o que faz bug passar semanas sem ninguem ver.
+    return { erro: e.code === "ENOENT" ? "nunca foi invocado (sem sessão ainda)" : `sessions.json ilegível: ${e.code || e.message}` };
+  }
   let j;
   try {
-    j = JSON.parse(readFileSync(p, "utf8"));
-  } catch {
-    return { erro: "sessions.json ilegível" };
+    j = JSON.parse(bruto);
+  } catch (e) {
+    return { erro: `sessions.json com JSON inválido: ${e.message.slice(0, 80)}` };
   }
   const arr = Array.isArray(j) ? j : j.sessions || Object.values(j);
   const entradas = (Array.isArray(arr) ? arr : [])
