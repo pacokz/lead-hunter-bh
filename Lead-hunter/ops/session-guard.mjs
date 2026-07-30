@@ -46,6 +46,8 @@ const AGENTES = {
   critico: { nome: "Critico", ws: "workspace-critico" },
   comercial: { nome: "Yuji", ws: "workspace-comercial" },
   diagnosticador: { nome: "Megumi", ws: "workspace-diagnosticador" },
+  fundacao: { nome: "Fundação", ws: "workspace-fundacao" },
+  revisor: { nome: "Revisor", ws: "workspace-revisor" },
 };
 
 function log(msg) {

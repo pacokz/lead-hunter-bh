@@ -1,0 +1,87 @@
+/* Example output from one run of this skill: a consumer-security system derived
+   from a marketing-site reference. Shape reference — not a default palette. */
+
+:root {
+  /* Color — signal (reserved: primary CTA and alerts only) */
+  --signal-red: #D9482F;
+  --signal-red-hover: #C03A23;
+
+  /* Color — brand */
+  --brand: #3D56F0;
+  --brand-hover: #2A3FD1;
+  --brand-bright: #4E66FF; /* buttons on dark surfaces */
+  --brand-tint: #8FA0FF;   /* data viz, badges on dark */
+
+  /* Color — neutrals */
+  --ink: #0B0C10;          /* darkest surface, footer */
+  --surface-dark: #14151C; /* cards inside dark sections */
+  --surface-dark-alt: #111218;
+  --mist: #F3F5F9;         /* page background */
+  --surface: #FFFFFF;
+  --border: #E1E5EC;
+  --border-strong: #C6CDD9;
+  --text: #0B0C10;
+  --text-body: #3A414C;
+  --text-secondary: #545B66;
+  --text-muted: #8A919D;
+  --text-on-dark: #B9C0CC;
+
+  /* Color — semantic */
+  --success: #7DE29B;
+  --danger: #FF6B57;
+
+  /* Type */
+  --font-sans: 'Manrope', system-ui, sans-serif;
+  --font-mono: ui-monospace, monospace;
+
+  --type-display-size: 56px;
+  --type-display-lh: 1.05;
+  --type-display-weight: 800;
+  --type-display-tracking: -0.03em;
+
+  --type-h2-size: 36px;
+  --type-h2-lh: 1.15;
+  --type-h2-weight: 800;
+  --type-h2-tracking: -0.02em;
+
+  --type-h3-size: 22px;
+  --type-h3-lh: 1.3;
+  --type-h3-weight: 700;
+
+  --type-body-size: 16px;
+  --type-body-lh: 1.6;
+  --type-body-weight: 400;
+
+  --type-caption-size: 13px;
+  --type-caption-lh: 1.4;
+  --type-caption-weight: 500;
+
+  /* Spacing */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 40px;
+  --space-2xl: 64px;
+
+  /* Radius */
+  --radius-sm: 8px;    /* tooltips, chips */
+  --radius-field: 12px;
+  --radius-md: 16px;   /* small cards, toasts */
+  --radius-lg: 28px;   /* cards, showcase blocks */
+  --radius-dialog: 24px;
+  --radius-pill: 999px; /* all actions */
+
+  /* Elevation — dark sections use tone, not shadow */
+  --elevation-flat: 1px solid var(--border);
+  --elevation-raised: 0 8px 24px rgba(11, 12, 16, 0.10);
+  --elevation-overlay: 0 24px 64px rgba(11, 12, 16, 0.22);
+
+  /* Interaction */
+  --control-height: 48px;   /* inputs */
+  --action-height: 56px;    /* marketing buttons */
+  --action-height-sm: 44px; /* chrome buttons */
+  --focus-ring: 0 0 0 3px rgba(61, 86, 240, 0.15);
+  --border-on-dark: rgba(255, 255, 255, 0.28);
+  --transition: 200ms ease;
+}

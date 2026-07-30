@@ -16,6 +16,8 @@ const AGENTS = {
   diagnosticador: { nome: "Megumi", ws: "workspace-diagnosticador" },
   criadora:       { nome: "Nobara", ws: "workspace-criadora" },
   "diretor-arte": { nome: "Nanami", ws: "workspace-diretor-arte" },
+  fundacao:       { nome: "Fundação", ws: "workspace-fundacao" },
+  revisor:        { nome: "Revisor", ws: "workspace-revisor" },
 };
 const JANELA = Date.now() - 4 * 24 * 3600 * 1000; // só as notas desde a última consolidação (+buffer)
 const date = new Date().toISOString().slice(0, 10);

@@ -13,6 +13,8 @@ const AGENTS = {
   diagnosticador: { nome: "Megumi", ws: "workspace-diagnosticador" },
   criadora:       { nome: "Nobara", ws: "workspace-criadora" },
   "diretor-arte": { nome: "Nanami", ws: "workspace-diretor-arte" },
+  fundacao:       { nome: "Fundação", ws: "workspace-fundacao" },
+  revisor:        { nome: "Revisor", ws: "workspace-revisor" },
 };
 
 // início do dia local
