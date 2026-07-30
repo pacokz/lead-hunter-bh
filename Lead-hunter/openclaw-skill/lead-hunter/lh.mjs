@@ -18,7 +18,9 @@ const UPLOADS = process.env.DEMO_UPLOADS_DIR
 // conclusao de processo destacado, e o HEARTBEAT.md dela e vazio de proposito — ou seja, sem isto
 // aqui ela nunca sabe que o BRIEF ficou pronto e o "te aviso" nunca acontece.
 // Desacoplado (detached + unref): o demo-brief termina na hora, sem esperar ela escrever o site.
-function avisarNobara(texto) {
+// entregar=false: roda o turno da Nobara SEM postar no Discord. E o que deixa a cadeia do
+// demo-auto trabalhar em silencio — o Samuel so e chamado quando a demo esta no ar (ou escalou).
+function avisarNobara(texto, { entregar = true } = {}) {
   let key = null;
   try {
     const ls = spawnSync("openclaw", ["sessions", "list", "--agent", "criadora", "--json"], { encoding: "utf8", timeout: 60000 });
@@ -38,14 +40,14 @@ function avisarNobara(texto) {
   // turno roda sem entregar nada no Discord. O destinatario e o sufixo da chave de sessao:
   // agent:criadora:discord:channel:<id>  ->  channel:<id>
   const destino = key.replace(/^agent:criadora:discord:/, "");
-  if (!/^(channel|user):/.test(destino)) {
+  if (entregar && !/^(channel|user):/.test(destino)) {
     console.error(`AVISO: chave de sessao inesperada ("${key}") — nao consegui derivar o destinatario. Chame a Nobara na mao.`);
     return;
   }
   // --reply-account tambem e obrigatorio: sem ele a entrega sai pela conta DEFAULT (bot do Sukuna),
   // e o Samuel recebe um aviso da Nobara assinado por outro agente.
-  const args = ["agent", "--agent", "criadora", "--session-key", key, "--reply-to", destino,
-    "--reply-account", "nobara", "--message", texto, "--deliver", "--timeout", "1800"];
+  const args = ["agent", "--agent", "criadora", "--session-key", key, "--message", texto, "--timeout", "1800"];
+  if (entregar) args.push("--reply-to", destino, "--reply-account", "nobara", "--deliver");
   // Nao usar detached+stdio:ignore aqui: a CLI sai com codigo 0 MESMO quando a entrega falha,
   // entao a unica forma de saber e ler a saida. Sem isso a falha e invisivel (foi o que aconteceu
   // em 30/07/2026: log dizia "notificada", nada chegou no Discord).
@@ -53,13 +55,59 @@ function avisarNobara(texto) {
     const r = spawnSync("openclaw", args, { encoding: "utf8", timeout: 1_860_000 });
     const saida = `${r.stdout || ""}${r.stderr || ""}`;
     if (/GatewayClientRequestError|recipient is required|Error:/i.test(saida)) {
-      console.error(`FALHA ao notificar a Nobara (${destino}). A demo esta pronta mas ela NAO foi avisada:\n${saida.trim().slice(0, 400)}`);
+      console.error(`FALHA ao falar com a Nobara${entregar ? ` (${destino})` : ""}:\n${saida.trim().slice(0, 400)}`);
       return;
     }
-    console.log(`Nobara notificada e resposta entregue no Discord (${destino}).`);
+    console.log(entregar ? `Nobara notificada e resposta entregue no Discord (${destino}).` : "Nobara executou o passo (sem postar no Discord).");
   } catch (e) {
     console.error(`FALHA ao notificar a Nobara: ${e.message}`);
   }
+}
+
+function semAcento(s) {
+  return String(s).normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+// GATE OBJETIVO de conversao e contato. Nasceu de dois furos REAIS que passaram pelo Critico
+// em 30/07/2026 no grupo-odontologico-carlos e so foram pegos por revisao humana:
+//   1. CTA principal em href="https://wa.me/" SEM numero — o botao de conversao caia na pagina
+//      generica do WhatsApp;
+//   2. footer sem endereco e sem telefone, sumindo com a prova de "lugar real" — que num negocio
+//      local estabelecido e o ativo mais forte do lead.
+// Sao checagens deterministicas (grep), nao julgamento: e o que permite tirar o humano do meio
+// sem baixar a guarda. O Revisor/Critico continuam julgando o resto.
+async function gateConversaoContato(slug, dir) {
+  const blocks = [];
+  const html = readFileSync(resolve(dir, "index.html"), "utf8");
+
+  const waSemNumero = [...html.matchAll(/href="[^"]*wa\.me\/([^"]*)"/gi)]
+    .filter((m) => (m[1].match(/\d/g) || []).length < 10);
+  if (waSemNumero.length) blocks.push(`CTA de WhatsApp sem numero (href="...wa.me/${waSemNumero[0][1].slice(0, 20)}") — o botao de conversao nao leva a lugar nenhum`);
+
+  const mortos = (html.match(/href="(#?)"/g) || []).length;
+  if (mortos) blocks.push(`${mortos} link(s) com href vazio ou "#" — CTA morto`);
+
+  // Telefone e endereco vem do banco (o lead.json so guarda place_id/nome/slug).
+  let place = null;
+  try {
+    const lead = JSON.parse(readFileSync(resolve(dir, "lead.json"), "utf8"));
+    if (lead.place_id) place = (await api("GET", `/leads/${lead.place_id}/context`)).place;
+  } catch {}
+  if (!place) {
+    console.log("Gate de contato: sem dados do lead no banco — pulado (nao da pra exigir o que nao temos).");
+    return blocks;
+  }
+
+  const digitos = String(place.phone || "").replace(/\D/g, "");
+  if (digitos.length >= 10) {
+    const flexivel = new RegExp(digitos.split("").join("\\D*"));
+    if (!flexivel.test(html)) blocks.push(`telefone real do lead (${place.phone}) nao aparece no site`);
+  }
+  const rua = String(place.address || "").split(",")[0].replace(/^(r\.|rua|av\.|avenida|al\.|alameda|pra[cç]a)\s*/i, "").trim();
+  if (rua.length >= 6 && !semAcento(html).includes(semAcento(rua))) {
+    blocks.push(`endereco real do lead ("${rua}") nao aparece no site — some a prova de lugar real`);
+  }
+  return blocks;
 }
 
 // Invoca a FUNDACAO (subagente da Nobara) por gateway: destila o BRIEF + prints em
@@ -560,9 +608,12 @@ const run = {
   async "demo-brief"() {
     // A': invoca o NANAMI (Diretor de Arte) por GATEWAY (nao por @mencao) pra escrever o BRIEF.
     // Handoff mecanico e confiavel: o codigo dispara o Nanami, nao a Nobara/@mencao.
-    const { rest } = parseFlags(args);
+    // --auto: quem chama e o demo-auto, que ja dirige a Nobara e escala falha. Avisar aqui
+    // faria a cadeia autonoma tagarelar no Discord a cada etapa.
+    const { flags, rest } = parseFlags(args);
+    const auto = Boolean(flags.auto);
     const slug = rest[0];
-    if (!slug) return console.error("uso: demo-brief <slug>  (invoca o Nanami por gateway pra pesquisar referencias e escrever o BRIEF)");
+    if (!slug) return console.error("uso: demo-brief <slug> [--auto]  (invoca o Nanami por gateway pra pesquisar referencias e escrever o BRIEF)");
     const dir = resolve(ROOT, slug);
     if (!existsSync(dir)) return console.error(`Pasta da demo nao existe: ${dir}. Rode demo-data <place_id> antes.`);
     let lead = {};
@@ -628,6 +679,7 @@ const run = {
         // pesado roda na sessao da Fundacao, nao na dela). Nao-bloqueante se falhar.
         const tokensOk = rodarFundacao(slug, dir);
         console.log(`PROXIMO: Nobara escreve demos/${slug}/index.html DO BRIEF${tokensOk ? " (usando tokens.css)" : ""} -> demo-revisao -> demo-publicar.`);
+        if (auto) return; // o demo-auto assume daqui: ele dirige a Nobara e escala sozinho
         avisarNobara(
           `O BRIEF de "${slug}" ficou PRONTO e passou no validate-brief (o Nanami entregou). ` +
           (tokensOk
@@ -643,6 +695,7 @@ const run = {
       console.error(`BRIEF reprovado no validate-brief (tentativa ${attempt}):\n${lastErr}`);
     }
     console.error("Nanami nao entregou um BRIEF valido em 2 tentativas. Cheque o gateway (openclaw agent) e o BRIEF-TEMPLATE.");
+    if (auto) process.exit(1); // quem escala e o demo-auto, com o motivo real
     // Falha tambem precisa avisar: sem isto ela espera pra sempre por um BRIEF que nunca vem.
     avisarNobara(
       `O demo-brief de "${slug}" FALHOU: o Nanami nao entregou um BRIEF valido em 2 tentativas. ` +
@@ -674,6 +727,105 @@ const run = {
     if (v.pronto) { console.log(`Revisor: PRONTO PRO CRITICO ✓ — pode rodar demo-publicar ${slug}.`); process.exit(0); }
     console.error(`Revisor: VOLTA PRA NOBORA — corrija o que esta em demos/${slug}/_qa/revisao-interna.md antes do Critico.`);
     process.exit(1);
+  },
+  async "demo-auto"() {
+    // Cadeia COMPLETA sem parar pra aprovacao: materiais -> Nanami -> Fundacao -> Nobara escreve
+    // -> Revisor (ate 2 correcoes) -> Critico -> deploy -> UMA mensagem no Discord com o link.
+    // Quem escolhe o lead continua sendo o Samuel: isto NAO varre a base sozinho.
+    // Silencio no caminho feliz, barulho na falha — cadeia muda que falha as 3h nao avisa ninguem.
+    const { flags, rest } = parseFlags(args);
+    const placeId = rest[0];
+    if (!placeId) return console.error("uso: demo-auto <place_id> [--site <url>] [--scope <time-vercel>]  (cadeia completa ate o deploy)");
+    const MAX_CORRECOES = 2;
+    const self = fileURLToPath(import.meta.url);
+    const passo = (cmd, extra = []) =>
+      spawnSync("node", [self, cmd, ...extra], { encoding: "utf8", timeout: 3_600_000 });
+    const mostrar = (r) => ((r.stdout || "") + (r.stderr || "")).trim();
+
+    const ctx = await api("GET", `/leads/${placeId}/context`);
+    const nome = (ctx.place && ctx.place.name) || placeId;
+    const slug = slugify(nome);
+    const dir = resolve(ROOT, slug);
+    console.log(`demo-auto: "${nome}" -> ${slug}`);
+
+    const escalar = (etapa, motivo) => {
+      const txt = String(motivo).replace(/\s+/g, " ").slice(0, 700);
+      console.error(`\nESCALADO em ${etapa}: ${txt}`);
+      avisarNobara(
+        `A cadeia automatica da demo "${slug}" (${nome}) PAROU na etapa ${etapa}. Motivo: ${txt}. ` +
+        `NAO tente resolver sozinha nem recomecar: conte isso pro Samuel aqui no Discord em uma mensagem curta e direta, ` +
+        `com o motivo e o que voce sugere fazer, e espere ele decidir.`
+      );
+      process.exit(1);
+    };
+
+    // 1. MATERIAIS
+    const rd = passo("demo-data", [placeId, ...(flags.site ? ["--site", String(flags.site)] : [])]);
+    console.log(mostrar(rd).slice(-600));
+    let fotos = [];
+    try { fotos = readdirSync(resolve(dir, "img")); } catch {}
+    if (!fotos.length) {
+      escalar("materiais", `o lead nao tem foto utilizavel (site sem imagem raspavel e sem @handle valido no banco). ` +
+        `Sem material real a demo sai generica — precisa de fotos do Instagram (demo-ig) ou de assets do proprio lead.`);
+    }
+    console.log(`Materiais: ${fotos.length} foto(s) reais ✓`);
+
+    // 2. BRIEF (Nanami) + tokens (Fundacao) — o --auto silencia o aviso; quem dirige daqui sou eu
+    const rb = passo("demo-brief", [slug, "--auto"]);
+    console.log(mostrar(rb).slice(-900));
+    if (rb.status !== 0) escalar("brief", `o Nanami nao entregou um BRIEF valido: ${mostrar(rb).slice(-400)}`);
+
+    // 3. NOBARA ESCREVE (turno agentico, sem postar no Discord)
+    console.log("Nobara: escrevendo o site a partir do BRIEF...");
+    avisarNobara(
+      `Escreva agora demos/${slug}/index.html DO ZERO a partir de demos/${slug}/BRIEF.md, usando demos/${slug}/tokens.css ` +
+      `(nao reinvente cor/fonte) e OLHANDO os refs/NN.png citados no BRIEF. Logo real no header e no footer. ` +
+      `Inclua os dados REAIS de contato do lead (endereco e telefone) — ha um gate que bloqueia a publicacao sem eles, ` +
+      `e o CTA principal tem que abrir a conversa (wa.me com numero), nao so ancorar. ` +
+      `NAO publique e NAO me responda no Discord: isto faz parte de uma cadeia automatica que segue sozinha. ` +
+      `Quando terminar de escrever o arquivo, apenas pare.`,
+      { entregar: false }
+    );
+    if (!existsSync(resolve(dir, "index.html"))) escalar("escrita", "a Nobara nao produziu o index.html.");
+
+    // 4. REVISOR — ate MAX_CORRECOES voltas
+    let aprovado = false;
+    for (let volta = 0; volta <= MAX_CORRECOES; volta++) {
+      const rr = passo("demo-revisao", [slug]);
+      console.log(mostrar(rr).slice(-500));
+      if (rr.status === 0) { aprovado = true; break; }
+      if (rr.status === 2) escalar("revisor", `Revisor indisponivel: ${mostrar(rr).slice(-300)}`);
+      if (volta === MAX_CORRECOES) {
+        escalar("revisor", `o Revisor reprovou ${MAX_CORRECOES + 1}x seguidas. Isso costuma ser problema no BRIEF, nao no HTML. ` +
+          `Ultimo parecer em demos/${slug}/_qa/revisao-interna.md`);
+      }
+      let parecer = "";
+      try { parecer = readFileSync(resolve(dir, "_qa", "revisao-interna.md"), "utf8").slice(-2500); } catch {}
+      console.log(`Revisor pediu correcao (volta ${volta + 1}/${MAX_CORRECOES}). Devolvendo pra Nobara...`);
+      avisarNobara(
+        `O Revisor REPROVOU demos/${slug}/index.html. Corrija TUDO que ele apontou e nao discuta o parecer. ` +
+        `Parecer:\n${parecer}\n\nNAO publique e NAO me responda no Discord: cadeia automatica em andamento. ` +
+        `Quando terminar de corrigir o arquivo, apenas pare.`,
+        { entregar: false }
+      );
+    }
+    if (!aprovado) escalar("revisor", "saiu do laco sem aprovacao."); // defensivo: nao deveria acontecer
+
+    // 5. PUBLICAR (gates + Critico + deploy)
+    const rp = passo("demo-publicar", [slug, ...(flags.scope ? ["--scope", String(flags.scope)] : [])]);
+    const saidaPub = mostrar(rp);
+    console.log(saidaPub.slice(-1200));
+    if (rp.status !== 0) escalar("publicacao", saidaPub.slice(-600));
+    const url = (saidaPub.match(/https:\/\/[a-z0-9.-]+\.vercel\.app/gi) || []).pop();
+    if (!url) escalar("publicacao", `deploy terminou sem erro mas nao achei a URL na saida: ${saidaPub.slice(-300)}`);
+
+    // 6. UNICA mensagem do caminho feliz
+    console.log(`\ndemo-auto: CONCLUIDO — ${url}`);
+    avisarNobara(
+      `A demo de "${nome}" ficou pronta e esta NO AR: ${url}. Passou por todos os gates e pelo Critico independente. ` +
+      `Avise o Samuel no Discord numa mensagem curta: o que voce fez de conceito visual (1-2 linhas, sem jargao), o link, ` +
+      `e o que ele deve olhar antes de mandar pro lead.`
+    );
   },
   async demo() {
     const { flags, rest } = parseFlags(args);
@@ -748,6 +900,16 @@ const run = {
         process.exit(1);
       }
       console.log("QA: sem bug bloqueante ✓");
+      // GATE DE CONVERSAO E CONTATO — deterministico, ver comentario da funcao
+      const cc = await gateConversaoContato(slug, dir);
+      if (cc.length) {
+        console.error("PUBLICACAO BLOQUEADA — conversao/contato:\n");
+        for (const b of cc) console.error(`  - ${b}`);
+        console.error("Corrija: o CTA principal tem que abrir a conversa, e telefone/endereco reais do lead precisam aparecer. (--force ignora, NAO recomendado.)");
+        logBlock("conversao-contato", cc.join(" | "));
+        process.exit(1);
+      }
+      console.log("Conversao e contato: CTA vivo e dados reais do lead presentes ✓");
       // GATE VISUAL — nao publica site templateado (render.mjs) nem parecido demais com anterior
       const vg = spawnSync("node", [resolve(dirname(fileURLToPath(import.meta.url)), "visual-gate.mjs"), slug], { encoding: "utf8" });
       if (vg.status === 1) {
@@ -794,7 +956,7 @@ const run = {
       const exe = typeof crit.brief_execution_score === "number" ? crit.brief_execution_score : null;
       const rich = typeof crit.richness_score === "number" ? crit.richness_score : null;
       const reprovado = crit.verdict === "reprovado" || (crit.blockers || []).length
-        || (typeof crit.score === "number" && crit.score < 7)
+        || (typeof crit.score === "number" && crit.score < 8)
         || (gen !== null && gen >= 5) || (exe !== null && exe < 6)
         || (rich !== null && rich < 6);
       if (reprovado) {
@@ -970,7 +1132,7 @@ const run = {
     console.log(JSON.stringify(await api("POST", args[0], args[1] ? JSON.parse(args[1]) : undefined), null, 2));
   },
   help() {
-    console.log("Comandos: status | leads [N] | lead <id> | draft <id> | demo-pedidos | demo-pedido-status <id> <status> | demo-data <id> [--site] | demo-ig <slug> <@handle> [qtd] | demo-render <spec> | demo-similar <slug> | demo <id> [--flags] | demo-brief <slug> | demo-fundacao <slug> | demo-revisao <slug> | demo-publicar <slug> | crm | promote | audit <id> | audit-run | score-run | get <path> | post <path> [json]");
+    console.log("Comandos: status | leads [N] | lead <id> | draft <id> | demo-pedidos | demo-pedido-status <id> <status> | demo-data <id> [--site] | demo-ig <slug> <@handle> [qtd] | demo-render <spec> | demo-similar <slug> | demo <id> [--flags] | demo-auto <id> [--site] [--scope] | demo-brief <slug> | demo-fundacao <slug> | demo-revisao <slug> | demo-publicar <slug> | crm | promote | audit <id> | audit-run | score-run | get <path> | post <path> [json]");
   },
 };
 
