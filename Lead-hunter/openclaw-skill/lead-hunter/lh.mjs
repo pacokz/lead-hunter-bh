@@ -29,7 +29,9 @@ const SCOPE_HINT = process.env.VERCEL_SCOPE ? ` --scope ${process.env.VERCEL_SCO
 // Desacoplado (detached + unref): o demo-brief termina na hora, sem esperar ela escrever o site.
 // entregar=false: roda o turno da Nobara SEM postar no Discord. E o que deixa a cadeia do
 // demo-auto trabalhar em silencio — o Samuel so e chamado quando a demo esta no ar (ou escalou).
-function avisarNobara(texto, { entregar = true } = {}) {
+// modelo: usado nas correcoes localizadas da cadeia automatica — corrigir tres linhas apontadas
+// pelo Revisor nao exige o modelo mais caro. A escrita inicial do site continua no modelo do agente.
+function avisarNobara(texto, { entregar = true, modelo } = {}) {
   let key = null;
   try {
     const ls = spawnSync("openclaw", ["sessions", "list", "--agent", "criadora", "--json"], { encoding: "utf8", timeout: 60000 });
@@ -895,7 +897,7 @@ const run = {
         `O Revisor REPROVOU demos/${slug}/index.html. Corrija TUDO que ele apontou e nao discuta o parecer. ` +
         `Parecer:\n${parecer}\n\nNAO publique e NAO me responda no Discord: cadeia automatica em andamento. ` +
         `Quando terminar de corrigir o arquivo, apenas pare.`,
-        { entregar: false }
+        { entregar: false, modelo: MODELO.correcao }
       );
     }
     if (!aprovado) escalar("revisor", "saiu do laco sem aprovacao."); // defensivo: nao deveria acontecer
