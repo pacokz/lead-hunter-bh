@@ -22,14 +22,23 @@ BRIEF pronto (Nanami)
                         └─ PRONTO ► demo-publicar (Crítico independente + gates + deploy)
 ```
 
-## Como invocar (gateway, headless — igual o `demo-brief` faz com o Nanami)
+## Como é invocado (wiring B — no `lh.mjs`, determinístico, não depende da Nobora lembrar)
+
+Os dois são disparados por gateway pelo próprio `lh.mjs` (igual o `demo-brief` faz com o Nanami) —
+o trabalho pesado roda na sessão do subagente, não na da Nobora.
+
+- **Fundação:** roda **automático no fim do `demo-brief`** (auto-chain). Assim que o BRIEF valida,
+  a Fundação gera `tokens.css` + `motion-spec.md` e só então a Nobara é avisada. Não-bloqueante:
+  se falhar, a Nobara extrai os tokens do BRIEF na mão. Re-rodar sozinho: `demo-fundacao <slug>`.
+- **Revisor:** a Nobara roda `demo-revisao <slug>` depois de escrever o site (sai ≠ 0 se "VOLTA").
+  E é **gate no `demo-publicar`**: roda antes do Crítico — bloqueia em "VOLTA PRA NOBORA",
+  segue em erro de infra (o Crítico ainda julga depois). `--force` ignora.
 
 ```bash
-openclaw agent --agent fundacao --json --timeout 600 --message \
-  "Fundação: destile o BRIEF do demo '<slug>'. Leia demos/<slug>/BRIEF.md e OLHE demos/<slug>/refs/*.png. Escreva demos/<slug>/tokens.css + demos/<slug>/motion-spec.md conforme seu SOUL. Responda so 'fundacao pronta'."
-
-openclaw agent --agent revisor --json --timeout 600 --message \
-  "Revisor: revise o demo '<slug>'. Leia BRIEF + index.html, rode os gates objetivos, teste anti-vibe-code e anti-molde. Escreva demos/<slug>/_qa/revisao-interna.md e responda 'PRONTO PRO CRITICO' ou 'VOLTA PRA NOBORA' + o porque."
+demo-brief <slug>       # Nanami escreve o BRIEF  →  auto-chain: Fundação gera tokens.css + motion-spec.md
+demo-fundacao <slug>    # (opcional) re-gera os tokens sozinho
+demo-revisao <slug>     # Revisor: QA barato; "PRONTO PRO CRITICO" (exit 0) ou "VOLTA PRA NOBORA" (exit 1)
+demo-publicar <slug>    # gates: brief → check.py → visual-gate → REVISOR → Crítico → deploy
 ```
 
 ## Regras

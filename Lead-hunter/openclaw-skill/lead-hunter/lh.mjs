@@ -43,6 +43,51 @@ function avisarNobara(texto) {
   }
 }
 
+// Invoca a FUNDACAO (subagente da Nobara) por gateway: destila o BRIEF + prints em
+// tokens.css + motion-spec.md. Deterministico — chamado no fim do demo-brief e como comando.
+// Ate 2 tentativas. Retorna true se os dois arquivos foram escritos.
+function rodarFundacao(slug, dir) {
+  const tokensPath = resolve(dir, "tokens.css");
+  const motionPath = resolve(dir, "motion-spec.md");
+  const prompt = `Voce e a Fundacao (subagente da Nobara). Destile o BRIEF do demo "${slug}" em vocabulario visual concreto, como diz seu SOUL.\n`
+    + `Leia demos/${slug}/BRIEF.md (foco §6b motion, §7 tipografia+paleta, §8 componentes) e OLHE os prints em demos/${slug}/refs/*.png que o Nanami citou.\n`
+    + `Escreva DOIS arquivos e nada mais:\n`
+    + `- demos/${slug}/tokens.css — custom properties (:root{--...}), 8-12 cores com a regra de uso em comentario, escada tipografica de 5 passos, 6 de espacamento, 3 raios + pill, elevacao. UM acento com UMA funcao. Claro+escuro se o BRIEF pedir.\n`
+    + `- demos/${slug}/motion-spec.md — o motion_tier, a stack, o efeito-ancora e os guardrails (reduced-motion, poster de fallback, mobile, LCP), tudo derivado do BRIEF.\n`
+    + `NAO invente cor/fonte fora do BRIEF. NAO gere HTML nem componentes (isso e da Nobara). Responda so "fundacao pronta".`;
+  for (let attempt = 1; attempt <= 2; attempt++) {
+    console.log(`Fundacao: invocando por gateway (tentativa ${attempt}) pra destilar os tokens de "${slug}" ...`);
+    spawnSync("openclaw", ["agent", "--agent", "fundacao", "--message", prompt, "--json", "--timeout", "600"], { encoding: "utf8", timeout: 660000 });
+    if (existsSync(tokensPath) && existsSync(motionPath)) {
+      console.log(`✅ Fundacao pronta: ${tokensPath} + ${motionPath}`);
+      return true;
+    }
+    console.error(`Fundacao nao entregou os dois arquivos (tentativa ${attempt}): tokens.css=${existsSync(tokensPath)} motion-spec.md=${existsSync(motionPath)}`);
+  }
+  console.error("Fundacao FALHOU em 2 tentativas. Nao e bloqueante: a Nobara pode extrair os tokens na mao do BRIEF — mas avise.");
+  return false;
+}
+
+// Invoca o REVISOR (subagente da Nobara) por gateway: QA barato ANTES do Critico.
+// Escreve _qa/revisao-interna.md terminando em "PRONTO PRO CRITICO" ou "VOLTA PRA NOBORA".
+// Veredito sempre fresco (o index.html pode ter mudado). Retorna {pronto} ou {erro}.
+function rodarRevisor(slug, dir) {
+  const revPath = resolve(dir, "_qa", "revisao-interna.md");
+  mkdirSync(resolve(dir, "_qa"), { recursive: true });
+  try { unlinkSync(revPath); } catch {}
+  const prompt = `Voce e o Revisor (subagente da Nobara). Revise o demo "${slug}" como diz seu SOUL — QA barato ANTES do Critico.\n`
+    + `Leia demos/${slug}/BRIEF.md e demos/${slug}/index.html. Rode os gates objetivos por bash (check.py e qa-visual.py em openclaw-skill/verifica-interface/), faca o teste anti-vibe-code e o anti-molde (demos/_repetition-book.md), e confira fidelidade ao BRIEF (motion_tier respeitado, marca real usada, nao "xucro").\n`
+    + `Escreva demos/${slug}/_qa/revisao-interna.md com os achados [ALTA]/[MEDIA] (arquivo:linha) e TERMINE o arquivo com uma linha literal: "PRONTO PRO CRITICO" ou "VOLTA PRA NOBORA".\n`
+    + `NAO edite o index.html (a correcao e da Nobara). Responda so o veredito.`;
+  console.log(`Revisor: invocando por gateway pra revisar "${slug}" ...`);
+  spawnSync("openclaw", ["agent", "--agent", "revisor", "--message", prompt, "--json", "--timeout", "600"], { encoding: "utf8", timeout: 660000 });
+  if (!existsSync(revPath)) return { erro: "o Revisor nao escreveu _qa/revisao-interna.md" };
+  const txt = readFileSync(revPath, "utf8");
+  const ultimo = (txt.match(/PRONTO PRO CRITICO|VOLTA PRA NOB\w+/gi) || []).pop();
+  if (!ultimo) return { erro: "revisao-interna.md sem veredito legivel (nem PRONTO nem VOLTA)" };
+  return { pronto: /PRONTO/i.test(ultimo), texto: txt };
+}
+
 // parser simples de flags --chave valor / --chave=valor
 function parseFlags(arr) {
   const flags = {}; const rest = [];
@@ -558,11 +603,19 @@ const run = {
       const vb = spawnSync("node", [vbPath, slug], { encoding: "utf8" });
       if (vb.status === 0) {
         console.log((vb.stdout || "").trim());
-        console.log(`✅ BRIEF pronto e validado: ${briefPath}\nPROXIMO: Nobara escreve demos/${slug}/index.html DO BRIEF -> QA -> demo-publicar.`);
+        console.log(`✅ BRIEF pronto e validado: ${briefPath}`);
+        // Auto-chain deterministico: a Fundacao destila o BRIEF em tokens.css + motion-spec.md ANTES
+        // de avisar a Nobara — assim quando ela comeca, o vocabulario ja esta pronto (e o trabalho
+        // pesado roda na sessao da Fundacao, nao na dela). Nao-bloqueante se falhar.
+        const tokensOk = rodarFundacao(slug, dir);
+        console.log(`PROXIMO: Nobara escreve demos/${slug}/index.html DO BRIEF${tokensOk ? " (usando tokens.css)" : ""} -> demo-revisao -> demo-publicar.`);
         avisarNobara(
           `O BRIEF de "${slug}" ficou PRONTO e passou no validate-brief (o Nanami entregou). ` +
+          (tokensOk
+            ? `A Fundacao ja destilou demos/${slug}/tokens.css + motion-spec.md — USE o tokens.css (nao reinvente cor/fonte). `
+            : `A Fundacao NAO gerou os tokens desta vez — extraia o vocabulario do BRIEF na mao. `) +
           `Leia demos/${slug}/BRIEF.md e OLHE os refs/NN.png citados nele, e siga o fluxo: escreva demos/${slug}/index.html DO ZERO a partir do BRIEF ` +
-          `(logo real no header e no footer), rode o QA e me chame pra aprovar antes de publicar. ` +
+          `(logo real no header e no footer), rode demo-revisao ${slug} (o Revisor faz o QA barato antes do Critico), corrija o que ele apontar, e me chame pra aprovar antes de publicar. ` +
           `Avise o Samuel no Discord que voce comecou e depois quando estiver pronto pra ele olhar.`
         );
         return;
@@ -577,6 +630,30 @@ const run = {
       `Ultimo erro do validate-brief: ${(lastErr || "(sem detalhe)").slice(0, 600)}. ` +
       `NAO escreva o BRIEF voce mesma. Avise o Samuel no Discord que o brief falhou, com esse motivo, e espere ele decidir.`
     );
+    process.exit(1);
+  },
+  async "demo-fundacao"() {
+    // Invoca a Fundacao (subagente da Nobara) pra destilar o BRIEF em tokens.css + motion-spec.md.
+    // Normalmente roda automatico no fim do demo-brief; este comando permite re-rodar sozinho.
+    const { rest } = parseFlags(args);
+    const slug = rest[0];
+    if (!slug) return console.error("uso: demo-fundacao <slug>  (invoca a Fundacao por gateway pra gerar tokens.css + motion-spec.md do BRIEF)");
+    const dir = resolve(ROOT, slug);
+    if (!existsSync(resolve(dir, "BRIEF.md"))) return console.error(`BRIEF.md nao existe em ${dir}. Rode demo-brief ${slug} antes.`);
+    const ok = rodarFundacao(slug, dir);
+    process.exit(ok ? 0 : 1);
+  },
+  async "demo-revisao"() {
+    // Invoca o Revisor (subagente da Nobara) pra QA interno ANTES do Critico. Sai != 0 se "VOLTA".
+    const { rest } = parseFlags(args);
+    const slug = rest[0];
+    if (!slug) return console.error("uso: demo-revisao <slug>  (invoca o Revisor por gateway pra QA barato antes do Critico)");
+    const dir = resolve(ROOT, slug);
+    if (!existsSync(resolve(dir, "index.html"))) return console.error(`index.html nao existe em ${dir}. A Nobara escreve o site DO BRIEF antes.`);
+    const v = rodarRevisor(slug, dir);
+    if (v.erro) { console.error(`Revisor indisponivel: ${v.erro}. Cheque o gateway (openclaw agent --agent revisor).`); process.exit(2); }
+    if (v.pronto) { console.log(`Revisor: PRONTO PRO CRITICO ✓ — pode rodar demo-publicar ${slug}.`); process.exit(0); }
+    console.error(`Revisor: VOLTA PRA NOBORA — corrija o que esta em demos/${slug}/_qa/revisao-interna.md antes do Critico.`);
     process.exit(1);
   },
   async demo() {
@@ -662,6 +739,18 @@ const run = {
         process.exit(1);
       }
       console.log((vg.stdout || "").trim());
+      // GATE REVISOR (triagem barata) — subagente da Nobara revisa ANTES de gastar o Critico.
+      // Fail-open em erro de infra (o Critico ainda gate depois); hard-block so no veredito "VOLTA".
+      const rev = rodarRevisor(slug, dir);
+      if (rev.erro) {
+        console.error(`AVISO: Revisor indisponivel (${rev.erro}) — seguindo pro Critico mesmo assim.`);
+      } else if (!rev.pronto) {
+        console.error(`PUBLICACAO BLOQUEADA PELO REVISOR — veredito "VOLTA PRA NOBORA". Veja demos/${slug}/_qa/revisao-interna.md, corrija e tente de novo. (--force ignora, NAO recomendado.)`);
+        logBlock("revisor", (rev.texto || "").split("\n").filter((l) => /\[ALTA\]|\[MEDIA\]|VOLTA/i.test(l)).join(" | ").slice(0, 300));
+        process.exit(1);
+      } else {
+        console.log("Revisor (triagem): PRONTO PRO CRITICO ✓");
+      }
       // GATE CRAFT (nivel 2) — JUIZ INDEPENDENTE: o agente Critico (terceiro papel, != Nanami/Nobara)
       // avalia por gateway e escreve o veredito. Acaba o "corrige a propria prova" (craft auto-avaliado).
       const critPath = resolve(dir, "_qa", "critique.json");
@@ -862,7 +951,7 @@ const run = {
     console.log(JSON.stringify(await api("POST", args[0], args[1] ? JSON.parse(args[1]) : undefined), null, 2));
   },
   help() {
-    console.log("Comandos: status | leads [N] | lead <id> | draft <id> | demo-pedidos | demo-pedido-status <id> <status> | demo-data <id> [--site] | demo-ig <slug> <@handle> [qtd] | demo-render <spec> | demo-similar <slug> | demo <id> [--flags] | demo-publicar <slug> | crm | promote | audit <id> | audit-run | score-run | get <path> | post <path> [json]");
+    console.log("Comandos: status | leads [N] | lead <id> | draft <id> | demo-pedidos | demo-pedido-status <id> <status> | demo-data <id> [--site] | demo-ig <slug> <@handle> [qtd] | demo-render <spec> | demo-similar <slug> | demo <id> [--flags] | demo-brief <slug> | demo-fundacao <slug> | demo-revisao <slug> | demo-publicar <slug> | crm | promote | audit <id> | audit-run | score-run | get <path> | post <path> [json]");
   },
 };
 

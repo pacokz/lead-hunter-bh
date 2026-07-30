@@ -24,7 +24,9 @@ node skills/lead-hunter/lh.mjs <comando> [args]
 - `lead <id>` → contexto completo de um lead (Google + auditoria + score)
 - `draft <id>` → gera rascunho de abordagem (WhatsApp). **NÃO envia** — o Samuel envia.
 - `demo-data <id> --site <url>` → entrega os MATERIAIS BRUTOS (dados reais + fotos baixadas + cor detectada) na pasta da demo. (Lead sem site/rede social: `demo-ig <slug> <@handle>` puxa as fotos reais do Instagram.)
-- `demo-brief <slug>` → invoca o **Nanami** (Diretor de Arte) **por gateway** (não @menção) pra pesquisar referências e escrever `demos/<slug>/BRIEF.md`. Reinvoca o Nanami se o `validate-brief` reprovar. É a rota canônica do BRIEF — a Nobara **não** escreve o próprio BRIEF.
+- `demo-brief <slug>` → invoca o **Nanami** (Diretor de Arte) **por gateway** (não @menção) pra pesquisar referências e escrever `demos/<slug>/BRIEF.md`. Reinvoca o Nanami se o `validate-brief` reprovar. É a rota canônica do BRIEF — a Nobara **não** escreve o próprio BRIEF. **Ao validar, dispara automático a Fundação** (ver abaixo).
+- `demo-fundacao <slug>` → invoca a **Fundação** (subagente da Nobara) por gateway pra destilar o BRIEF + prints em `demos/<slug>/tokens.css` + `motion-spec.md`. Roda **automático no fim do `demo-brief`**; este comando só re-gera sozinho. Não-bloqueante.
+- `demo-revisao <slug>` → invoca o **Revisor** (subagente da Nobara) por gateway pra QA barato ANTES do Crítico: roda os gates objetivos + anti-vibe-code + anti-molde e escreve `demos/<slug>/_qa/revisao-interna.md`. Exit 0 = "PRONTO PRO CRITICO", exit 1 = "VOLTA PRA NOBORA". Também é gate no `demo-publicar`.
 - `demo-render <spec.json>` → **FALLBACK DEPRECIADO** (gera site templateado a partir de uma SPEC). **NÃO é o caminho principal** — o gate visual REPROVA o resultado dele na publicação. A rota canônica é a Nobara escrever o `index.html` do ZERO (ver passo a passo abaixo). Só use em emergência (lead 100% sem material).
 - `demo-similar <slug>` → compara a estrutura da demo com as anteriores e avisa se ficou MUITO PARECIDA (>75%) — pra não virar molde. Exit 1 se parecida demais.
 - `demo <id> --site <url do site atual>` → (FALLBACK) gera uma PRÉVIA de site via template. Sistema PARAMETRIZADO (varia por nicho): `--theme boutique|warm|bold|classic` (par de fontes + clima) e `--anim aurora,textgen,marquee,parallax,hoverzoom,shimmer` (escolha as animações). Sem flags, usa o tema/animações padrão do segmento. Baixa as fotos reais do site (`--site`); lead sem site nenhum omite `--site`. Outros overrides: `--accent #hex` (cor da marca real do lead), `--accent2 #hex`, `--headline`, `--sobre`, `--segmento`. Salva em `C:\01-hermes\Lead-hunter\demos\<slug>\`.
@@ -63,8 +65,10 @@ A demo nasce da **rota criativa** (NÃO do template) — é isso que garante que
    AMPLAS (WebSearch, mín. 4, cross-nicho, awwwards 1º / 21st.dev pra animação) e escreve
    `demos/<slug>/BRIEF.md` (BRIEF-TEMPLATE.md). O `validate-brief` exige profundidade (hero_strategy,
    motion_tier, stack, image_treatment); se reprovar, o Nanami é reinvocado. **A Nobara NÃO escreve
-   o próprio BRIEF** — quem faz direção de arte é o Nanami.
-3. **Nobara** escreve `demos/<slug>/index.html` **DO ZERO** (skill `frontend-design`),
+   o próprio BRIEF** — quem faz direção de arte é o Nanami. Ao validar, a **Fundação** (subagente
+   da Nobara) roda automático e destila o BRIEF em `demos/<slug>/tokens.css` + `motion-spec.md`.
+3. **Nobara** escreve `demos/<slug>/index.html` **DO ZERO** (skill `frontend-design`), **usando o
+   `tokens.css` da Fundação** (não reinventa cor/fonte; se a Fundação falhou, extrai do BRIEF na mão),
    reimplementando as referências do BRIEF — **estrutura, hero, animações, tipografia e
    composição PRÓPRIAS**. É **PROIBIDO** usar `render.mjs`/`demo-render` (gera site templateado).
    **Stack livre conforme o `motion_tier` do BRIEF** (T0 static → T1 micro-interações CSS →
@@ -79,9 +83,11 @@ A demo nasce da **rota criativa** (NÃO do template) — é isso que garante que
    (b) `python skills/verifica-interface/qa-visual.py demos/<slug>/index.html` — gera os screenshots
        (desktop/mobile/tablet) que o **Crítico** vai olhar. A Nobara **NÃO se dá a própria nota** —
        o craft é julgado no publicar por um juiz independente (ver passo 6).
+   (c) `demo-revisao <slug>` — o **Revisor** (subagente) faz o QA barato com olhos frescos e devolve
+       "PRONTO PRO CRITICO" ou "VOLTA PRA NOBORA". Corrija o que ele apontar ANTES de publicar.
 5. Resuma pro Samuel (negócio, referências usadas, link do arquivo). Ele revisa/aprova.
 6. `demo-publicar <slug> --scope balmor-s-projects` — roda TODOS os gates (BRIEF real, template,
-   similaridade, movimento, números, check.py) **E chama o agente Crítico por gateway** (juiz
+   similaridade, movimento, números, check.py, **Revisor** como triagem barata) **E chama o agente Crítico por gateway** (juiz
    independente, ≠ Nanami/Nobara) que olha os screenshots + BRIEF e escreve o veredito
    (`critique.json`: craft/genericity/brief_execution). Reprova genérico/nota baixa. Só então sobe.
 7. Entregue o link pro Samuel. **Ele é quem manda pro lead** — você nunca envia.
