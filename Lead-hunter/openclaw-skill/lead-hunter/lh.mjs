@@ -34,12 +34,31 @@ function avisarNobara(texto) {
     console.error("AVISO: nao achei a sessao de Discord da Nobara — ela NAO vai ser notificada. Chame ela na mao.");
     return;
   }
-  const args = ["agent", "--agent", "criadora", "--session-key", key, "--message", texto, "--deliver", "--timeout", "1800"];
+  // --deliver EXIGE destinatario explicito, senao morre com "Discord recipient is required" e o
+  // turno roda sem entregar nada no Discord. O destinatario e o sufixo da chave de sessao:
+  // agent:criadora:discord:channel:<id>  ->  channel:<id>
+  const destino = key.replace(/^agent:criadora:discord:/, "");
+  if (!/^(channel|user):/.test(destino)) {
+    console.error(`AVISO: chave de sessao inesperada ("${key}") — nao consegui derivar o destinatario. Chame a Nobara na mao.`);
+    return;
+  }
+  // --reply-account tambem e obrigatorio: sem ele a entrega sai pela conta DEFAULT (bot do Sukuna),
+  // e o Samuel recebe um aviso da Nobara assinado por outro agente.
+  const args = ["agent", "--agent", "criadora", "--session-key", key, "--reply-to", destino,
+    "--reply-account", "nobara", "--message", texto, "--deliver", "--timeout", "1800"];
+  // Nao usar detached+stdio:ignore aqui: a CLI sai com codigo 0 MESMO quando a entrega falha,
+  // entao a unica forma de saber e ler a saida. Sem isso a falha e invisivel (foi o que aconteceu
+  // em 30/07/2026: log dizia "notificada", nada chegou no Discord).
   try {
-    spawn("openclaw", args, { detached: true, stdio: "ignore" }).unref();
-    console.log(`Nobara notificada por gateway (${key}).`);
+    const r = spawnSync("openclaw", args, { encoding: "utf8", timeout: 1_860_000 });
+    const saida = `${r.stdout || ""}${r.stderr || ""}`;
+    if (/GatewayClientRequestError|recipient is required|Error:/i.test(saida)) {
+      console.error(`FALHA ao notificar a Nobara (${destino}). A demo esta pronta mas ela NAO foi avisada:\n${saida.trim().slice(0, 400)}`);
+      return;
+    }
+    console.log(`Nobara notificada e resposta entregue no Discord (${destino}).`);
   } catch (e) {
-    console.error(`Falha ao notificar a Nobara: ${e.message}`);
+    console.error(`FALHA ao notificar a Nobara: ${e.message}`);
   }
 }
 
