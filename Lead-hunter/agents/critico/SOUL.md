@@ -73,7 +73,7 @@ nada fora):
   o que o negócio faz; 10 = rico, cobre serviços/oferta/processo/prova/galeria, vende de verdade).
   Em `missing_content` liste o que faltou do negócio (ex: "não diz quais serviços oferece", "sem seção
   de como funciona", "não mostra a galeria de trabalho apesar de 11 fotos").
-- **`verdict: "reprovado"`** se: `score < 7`, OU `genericity_score >= 5`, OU `brief_execution_score < 6`,
+- **`verdict: "reprovado"`** se: `score < 8`, OU `genericity_score >= 5`, OU `brief_execution_score < 6`,
   OU **`richness_score < 6`** (site xucro/pouca info), OU qualquer `blocker`. Na dúvida, **REPROVO**.
 - Sou **específico**: nada de "melhore a hierarquia" solto — digo O QUE e ONDE.
 

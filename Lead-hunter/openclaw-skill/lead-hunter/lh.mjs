@@ -1,18 +1,27 @@
 #!/usr/bin/env node
-// Lead Hunter BH — cliente CLI pra Sukuna operar o backend (FastAPI em localhost:8000).
+// Lead Hunter — cliente CLI pra Sukuna operar o backend (FastAPI; endereco em LH_API,
+// default http://localhost:8000).
 import { writeFileSync, mkdirSync, existsSync, readFileSync, readdirSync, unlinkSync, statSync, copyFileSync, appendFileSync } from "fs";
 import { dirname, resolve } from "path";
 import { fileURLToPath } from "url";
 import { homedir } from "os";
 import { spawnSync, spawn } from "child_process";
 import { gerarDemo, slugify, waLink, bairro } from "./demo.mjs";
+import { bloqueada, registrarSaida, marcarOk } from "./quota.mjs";
 import { renderSpec } from "./render.mjs";
 const BASE = process.env.LH_API || "http://localhost:8000";
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "demos");
 const PY = process.platform === "win32" ? "python" : "python3"; // VPS Linux so tem python3
-// uploads do GERAR SITE (fotos/videos que o Samuel sobe pela interface, por place_id)
+// uploads do GERAR SITE (fotos/videos que o operador sobe pela interface, por place_id).
+// Sem DEMO_UPLOADS_DIR cai no HOME de quem esta rodando — nunca num usuario fixo, que quebraria
+// em toda instalacao onde o dono da VPS nao tenha o mesmo nome de usuario.
 const UPLOADS = process.env.DEMO_UPLOADS_DIR
-  || (process.platform === "win32" ? resolve(ROOT, "..", "demo-uploads") : "/home/hermes/.openclaw/demo-uploads");
+  || (process.platform === "win32" ? resolve(ROOT, "..", "demo-uploads") : resolve(homedir(), ".openclaw", "demo-uploads"));
+
+// Time da Vercel desta instalacao. As dicas de "proximo passo" leem daqui em vez de trazer um
+// scope escrito por extenso: um time fixo no texto faz o agente de outra instalacao obedecer o
+// texto e tentar publicar num time que nao e o dele.
+const SCOPE_HINT = process.env.VERCEL_SCOPE ? ` --scope ${process.env.VERCEL_SCOPE}` : "";
 
 // A Nobara dispara o demo-brief com nohup e ENCERRA o turno dela. Nada no OpenClaw notifica
 // conclusao de processo destacado, e o HEARTBEAT.md dela e vazio de proposito — ou seja, sem isto
@@ -52,7 +61,8 @@ function avisarNobara(texto, { entregar = true } = {}) {
   // entao a unica forma de saber e ler a saida. Sem isso a falha e invisivel (foi o que aconteceu
   // em 30/07/2026: log dizia "notificada", nada chegou no Discord).
   try {
-    const r = spawnSync("openclaw", args, { encoding: "utf8", timeout: 1_860_000 });
+    const { r, semCota } = agente(args, 1_860_000);
+    if (semCota || !r) { console.error("Nobara NAO foi avisada: conta sem cota. O trabalho esta pronto; avise na mao ou espere o reset."); return; }
     const saida = `${r.stdout || ""}${r.stderr || ""}`;
     if (/GatewayClientRequestError|recipient is required|Error:/i.test(saida)) {
       console.error(`FALHA ao falar com a Nobara${entregar ? ` (${destino})` : ""}:\n${saida.trim().slice(0, 400)}`);
@@ -98,14 +108,19 @@ async function gateConversaoContato(slug, dir) {
     return blocks;
   }
 
-  const digitos = String(place.phone || "").replace(/\D/g, "");
-  if (digitos.length >= 10) {
-    const flexivel = new RegExp(digitos.split("").join("\\D*"));
-    if (!flexivel.test(html)) blocks.push(`telefone real do lead (${place.phone}) nao aparece no site`);
+  // NAO exigir o numero exato do banco: o banco vem do Google Maps e o Samuel, que fala com o
+  // cliente, sabe mais que o Maps. Em 30/07/2026 esta checagem bloqueou uma publicacao legitima
+  // (o numero tinha sido corrigido na conversa) e a saida foi --force, que desliga TODOS os gates
+  // de uma vez. O que importa e existir canal de conversao vivo — qual numero e decisao humana.
+  const temWhats = /href="[^"]*wa\.me\/(\d[^"]*)"/i.test(html) &&
+    [...html.matchAll(/href="[^"]*wa\.me\/([^"]*)"/gi)].some((m) => (m[1].match(/\d/g) || []).length >= 10);
+  const temTel = [...html.matchAll(/href="tel:([^"]*)"/gi)].some((m) => (m[1].match(/\d/g) || []).length >= 10);
+  if (!temWhats && !temTel) {
+    blocks.push("sem canal de conversao vivo — nenhum wa.me com numero valido nem link tel: no site");
   }
   const rua = String(place.address || "").split(",")[0].replace(/^(r\.|rua|av\.|avenida|al\.|alameda|pra[cç]a)\s*/i, "").trim();
   if (rua.length >= 6 && !semAcento(html).includes(semAcento(rua))) {
-    blocks.push(`endereco real do lead ("${rua}") nao aparece no site — some a prova de lugar real`);
+    blocks.push(`endereco do lead ("${rua}") nao aparece no site — some a prova de lugar real. (Fonte: banco/Google Maps; se o endereco mudou, corrija no banco em vez de usar --force.)`);
   }
   return blocks;
 }
@@ -124,7 +139,7 @@ function rodarFundacao(slug, dir) {
     + `NAO invente cor/fonte fora do BRIEF. NAO gere HTML nem componentes (isso e da Nobara). Responda so "fundacao pronta".`;
   for (let attempt = 1; attempt <= 2; attempt++) {
     console.log(`Fundacao: invocando por gateway (tentativa ${attempt}) pra destilar os tokens de "${slug}" ...`);
-    spawnSync("openclaw", ["agent", "--agent", "fundacao", "--message", prompt, "--json", "--timeout", "600"], { encoding: "utf8", timeout: 660000 });
+    agente(["agent", "--agent", "fundacao", "--message", prompt, "--json", "--timeout", "600"]);
     if (existsSync(tokensPath) && existsSync(motionPath)) {
       console.log(`✅ Fundacao pronta: ${tokensPath} + ${motionPath}`);
       return true;
@@ -147,12 +162,30 @@ function rodarRevisor(slug, dir) {
     + `Escreva demos/${slug}/_qa/revisao-interna.md com os achados [ALTA]/[MEDIA] (arquivo:linha) e TERMINE o arquivo com uma linha literal: "PRONTO PRO CRITICO" ou "VOLTA PRA NOBORA".\n`
     + `NAO edite o index.html (a correcao e da Nobara). Responda so o veredito.`;
   console.log(`Revisor: invocando por gateway pra revisar "${slug}" ...`);
-  spawnSync("openclaw", ["agent", "--agent", "revisor", "--message", prompt, "--json", "--timeout", "600"], { encoding: "utf8", timeout: 660000 });
+  agente(["agent", "--agent", "revisor", "--message", prompt, "--json", "--timeout", "600"]);
   if (!existsSync(revPath)) return { erro: "o Revisor nao escreveu _qa/revisao-interna.md" };
   const txt = readFileSync(revPath, "utf8");
   const ultimo = (txt.match(/PRONTO PRO CRITICO|VOLTA PRA NOB\w+/gi) || []).pop();
   if (!ultimo) return { erro: "revisao-interna.md sem veredito legivel (nem PRONTO nem VOLTA)" };
   return { pronto: /PRONTO/i.test(ultimo), texto: txt };
+}
+
+// Toda chamada de agente passa por aqui. Dois motivos:
+//  1. NAO chamar o gateway quando a conta esta sabidamente sem cota — em 30/07/2026 foram 21
+//     tentativas condenadas, 14 delas fallback redundante entre modelos da MESMA conta;
+//  2. reconhecer o estouro na saida e abrir o circuito ate o reset informado pelo provedor.
+// Devolve { r, semCota } — semCota=true significa "nem tentei" ou "estourou agora".
+function agente(args, timeout = 660_000) {
+  const b = bloqueada();
+  if (b) {
+    console.error(`COTA: conta bloqueada por mais ~${b.restanteMin}min (ate ${b.ate.toISOString()}). Nao vou chamar o agente — tentar outro modelo da mesma conta nao adianta.`);
+    return { r: null, semCota: true };
+  }
+  const r = spawnSync("openclaw", args, { encoding: "utf8", timeout });
+  const saida = `${r.stdout || ""}${r.stderr || ""}`;
+  if (registrarSaida(saida)) return { r, semCota: true };
+  if (saida.trim()) marcarOk();
+  return { r, semCota: false };
 }
 
 // parser simples de flags --chave valor / --chave=valor
@@ -398,8 +431,8 @@ async function api(method, path, body) {
     });
   } catch (e) {
     console.error(
-      `SEM CONEXAO com o backend (${BASE}). Ele esta rodando? ` +
-        `(na VPS: docker restart lead-hunter-backend | no Windows: cd C:\\01-hermes\\Lead-hunter && docker compose up -d)\n${e.message}`
+      `SEM CONEXAO com o backend (${BASE}). Ele esta rodando e acessivel? ` +
+        `(local: docker compose up -d na pasta do Lead Hunter | remoto: confira LH_API e a rede)\n${e.message}`
     );
     process.exit(2);
   }
@@ -488,7 +521,7 @@ const run = {
     const nSec = (spec.sections || []).length;
     console.log(`RENDERIZADO da spec (${nSec} secoes) -> ${file}`);
     if (va.neverUsed && va.neverUsed.length) console.log(`(variedade futura: ainda sem uso — ${va.neverUsed.slice(0, 8).join(", ")})`);
-    console.log(`PROXIMO: verifica-interface "${file}" + qa-visual + design-critique + teste anti-vibe-code; se ok, demo-publicar ${slug} --scope balmor-s-projects`);
+    console.log(`PROXIMO: verifica-interface "${file}" + qa-visual + design-critique + teste anti-vibe-code; se ok, demo-publicar ${slug}${SCOPE_HINT}`);
   },
   async "demo-similar"() {
     const { rest } = parseFlags(args);
@@ -576,7 +609,7 @@ const run = {
     console.log(`     >> POUCAS FOTOS ou lead SEM SITE (rede social)? Puxe do Instagram: demo-ig ${slug} <@handle> [qtd] (fotos reais em img/, prefixo ig-).`);
     console.log(`  2. BRIEF: rode 'demo-brief ${slug}' — invoca o NANAMI por gateway pra pesquisar referencias e escrever o BRIEF. NAO escreva o BRIEF voce mesma (quem faz direcao de arte e o Nanami).`);
     console.log(`  3. NOBARA: com o BRIEF pronto, escreva demos/${slug}/index.html DO ZERO (frontend-design) reimplementando o brief; stack conforme motion_tier (libs em demos/_stack-kit/, guia em referencias/web-stack-motion.md).`);
-    console.log(`  4. QA: check.py + qa-visual (gera os screenshots pro Critico) -> demo-publicar ${slug} --scope balmor-s-projects (o Critico independente da a nota; voce NAO se auto-avalia).`);
+    console.log(`  4. QA: check.py + qa-visual (gera os screenshots pro Critico) -> demo-publicar ${slug}${SCOPE_HINT} (o Critico independente da a nota; voce NAO se auto-avalia).`);
   },
   async "demo-ig"() {
     // baixa FOTOS REAIS do Instagram do lead (gallery-dl + cookie) — pra leads sem site / rede social,
@@ -588,7 +621,7 @@ const run = {
     if (!existsSync(dir)) return console.error(`Pasta da demo nao existe: ${dir}. Rode demo-data <place_id> antes.`);
     const cookiePath = resolve(homedir(), ".openclaw", "ig-cookies.txt");
     const confPath = resolve(homedir(), ".config", "gallery-dl", "config.json");
-    if (!existsSync(cookiePath)) return console.error(`SEM COOKIE do Instagram (${cookiePath}). Avise o Samuel pra reexportar o cookie do @leadhunter_bh.`);
+    if (!existsSync(cookiePath)) return console.error(`SEM COOKIE do Instagram (${cookiePath}). Exporte de novo o cookie da conta de Instagram desta instalacao (perfil logado) e salve nesse caminho.`);
     const imgDir = resolve(dir, "img"); mkdirSync(imgDir, { recursive: true });
     const handle = alvo.replace(/^@/, "").replace(/^https?:\/\/(www\.)?instagram\.com\//i, "").replace(/\/.*$/, "");
     const url = /^https?:\/\//i.test(alvo) ? alvo : `https://www.instagram.com/${handle}/`;
@@ -636,7 +669,7 @@ const run = {
       + `- >=1 referencia de FORA do nicho (cross-pollination). Alinhe ao nicho do lead nas queries.\n`
       + `Escreva SO o refs/urls.json AGORA (JSON valido). NAO escreva o BRIEF ainda. Responda "urls prontas".`;
     console.log(`Passe 1: invocando o Nanami por gateway pra descobrir referencias (refs/urls.json) ...`);
-    spawnSync("openclaw", ["agent", "--agent", "diretor-arte", "--message", p1, "--json", "--timeout", "600"], { encoding: "utf8", timeout: 660000 });
+    agente(["agent", "--agent", "diretor-arte", "--message", p1, "--json", "--timeout", "600"]);
     // captura os prints reais das URLs que o Nanami escolheu
     let okRefs = [];
     if (existsSync(urlsPath)) {
@@ -668,7 +701,7 @@ const run = {
       const msg = attempt === 1 ? basePrompt
         : `${basePrompt}\n\nATENCAO: o BRIEF anterior FOI REPROVADO pelo validador. Corrija exatamente isto e reescreva demos/${slug}/BRIEF.md:\n${lastErr}`;
       console.log(`Passe 2: invocando o Nanami por gateway (tentativa ${attempt}) pra OLHAR os prints e escrever demos/${slug}/BRIEF.md ...`);
-      const r = spawnSync("openclaw", ["agent", "--agent", "diretor-arte", "--message", msg, "--json", "--timeout", "600"], { encoding: "utf8", timeout: 660000 });
+      const { r } = agente(["agent", "--agent", "diretor-arte", "--message", msg, "--json", "--timeout", "600"]);
       if (!existsSync(briefPath)) { lastErr = "BRIEF.md nao foi criado."; console.error(`Nanami nao escreveu o BRIEF (tentativa ${attempt}).`); continue; }
       const vb = spawnSync("node", [vbPath, slug], { encoding: "utf8" });
       if (vb.status === 0) {
@@ -943,7 +976,8 @@ const run = {
       try { unlinkSync(critPath); } catch {} // remove qualquer critique auto-escrito; so vale o do Critico
       console.log("Chamando o Critico (juiz independente) por gateway pra avaliar o site...");
       const critMsg = `Julgue o demo "${slug}". Leia demos/${slug}/BRIEF.md e demos/${slug}/index.html, OLHE os screenshots demos/${slug}/_qa/desktop.png, mobile.png e tablet.png, e escreva demos/${slug}/_qa/critique.json no formato do seu SOUL (score, genericity_score, brief_execution_score, richness_score, missing_content, blockers, craft_issues, verdict). Seja impiedoso com GENERICO e com site XUCRO (poucas secoes / pouca info do que o negocio faz). Responda so "avaliado" no fim.`;
-      const jc = spawnSync("openclaw", ["agent", "--agent", "critico", "--json", "--timeout", "300", "--message", critMsg], { encoding: "utf8", timeout: 340000 });
+      const { r: jc, semCota: critSemCota } = agente(["agent", "--agent", "critico", "--json", "--timeout", "300", "--message", critMsg], 340000);
+      if (critSemCota || !jc) { console.error("PUBLICACAO ADIADA — conta sem cota pra chamar o Critico. Nada foi publicado; tente apos o reset."); logBlock("cota", "sem cota para o Critico"); process.exit(1); }
       if (!existsSync(critPath)) {
         console.error("PUBLICACAO BLOQUEADA — o Critico nao devolveu o veredito (_qa/critique.json). Saida:\n" + ((jc.stdout || "") + (jc.stderr || "")).slice(-500));
         logBlock("critico", "sem critique.json");
