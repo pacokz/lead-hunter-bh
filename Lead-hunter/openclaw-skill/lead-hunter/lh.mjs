@@ -139,7 +139,7 @@ function rodarFundacao(slug, dir) {
     + `NAO invente cor/fonte fora do BRIEF. NAO gere HTML nem componentes (isso e da Nobara). Responda so "fundacao pronta".`;
   for (let attempt = 1; attempt <= 2; attempt++) {
     console.log(`Fundacao: invocando por gateway (tentativa ${attempt}) pra destilar os tokens de "${slug}" ...`);
-    agente(["agent", "--agent", "fundacao", "--message", prompt, "--json", "--timeout", "600"]);
+    agenteEfemero("fundacao", prompt, { modelo: MODELO.fundacao, tag: slug });
     if (existsSync(tokensPath) && existsSync(motionPath)) {
       console.log(`✅ Fundacao pronta: ${tokensPath} + ${motionPath}`);
       return true;
@@ -153,6 +153,23 @@ function rodarFundacao(slug, dir) {
 // Invoca o REVISOR (subagente da Nobara) por gateway: QA barato ANTES do Critico.
 // Escreve _qa/revisao-interna.md terminando em "PRONTO PRO CRITICO" ou "VOLTA PRA NOBORA".
 // Veredito sempre fresco (o index.html pode ter mudado). Retorna {pronto} ou {erro}.
+// Gates DETERMINISTICOS, rodados ANTES do Revisor. Motivo medido em 30/07/2026: o Revisor gastou
+// DUAS passadas de Opus (6m03) afirmando que nao havia href="#" — e o gate achou em 19 segundos,
+// depois dele. Procurar defeito objetivo com LLM e caro e pouco confiavel; o Revisor so deve ser
+// chamado pra fazer o que grep nao faz (conferir fato contra o mundo real).
+// Devolve [] quando esta limpo, ou a lista de problemas a devolver pra Nobara sem gastar o Revisor.
+async function gatesObjetivos(slug, dir) {
+  const problemas = [];
+  const checker = resolve(dirname(fileURLToPath(import.meta.url)), "..", "verifica-interface", "check.py");
+  const qa = spawnSync(PY, [checker, resolve(dir, "index.html")], { encoding: "utf8" });
+  if (qa.status === 2) {
+    const altas = (qa.stdout || "").split("\n").filter((l) => l.includes("[ALTA]"));
+    problemas.push(...(altas.length ? altas.map((l) => l.trim()) : ["check.py apontou bug [ALTA]"]));
+  }
+  problemas.push(...(await gateConversaoContato(slug, dir)));
+  return problemas;
+}
+
 function rodarRevisor(slug, dir) {
   const revPath = resolve(dir, "_qa", "revisao-interna.md");
   mkdirSync(resolve(dir, "_qa"), { recursive: true });
@@ -162,7 +179,7 @@ function rodarRevisor(slug, dir) {
     + `Escreva demos/${slug}/_qa/revisao-interna.md com os achados [ALTA]/[MEDIA] (arquivo:linha) e TERMINE o arquivo com uma linha literal: "PRONTO PRO CRITICO" ou "VOLTA PRA NOBORA".\n`
     + `NAO edite o index.html (a correcao e da Nobara). Responda so o veredito.`;
   console.log(`Revisor: invocando por gateway pra revisar "${slug}" ...`);
-  agente(["agent", "--agent", "revisor", "--message", prompt, "--json", "--timeout", "600"]);
+  agenteEfemero("revisor", prompt, { modelo: MODELO.revisor, tag: slug });
   if (!existsSync(revPath)) return { erro: "o Revisor nao escreveu _qa/revisao-interna.md" };
   const txt = readFileSync(revPath, "utf8");
   const ultimo = (txt.match(/PRONTO PRO CRITICO|VOLTA PRA NOB\w+/gi) || []).pop();
@@ -186,6 +203,37 @@ function agente(args, timeout = 660_000) {
   if (registrarSaida(saida)) return { r, semCota: true };
   if (saida.trim()) marcarOk();
   return { r, semCota: false };
+}
+
+// Modelo por papel. Medido em 30/07/2026: 85 dos 86 turnos do dia rodaram em Opus 4.8, inclusive
+// os workers "baratos". Fundacao traduz um contrato e o Revisor confere fatos — nenhum dos dois
+// precisa do modelo mais caro. O Critico continua em Opus: e ele quem julga o craft, e rebaixar o
+// juiz sem medir seria trocar qualidade por cota.
+const MODELO = {
+  fundacao: process.env.LH_MODELO_FUNDACAO || "anthropic/claude-sonnet-4-6",
+  revisor: process.env.LH_MODELO_REVISOR || "anthropic/claude-sonnet-4-6",
+  correcao: process.env.LH_MODELO_CORRECAO || "anthropic/claude-sonnet-4-6",
+};
+
+// Sessao EFEMERA por etapa. Antes, cada worker retomava a propria sessao e carregava tudo que ja
+// tinha feito: Revisor chegou a 111k e Fundacao a 69k so pra um job. Como o trabalho deles e
+// stateless por demo (leem arquivo, escrevem arquivo), comecar limpo e mais barato e mais previsivel.
+// O aprendizado duravel continua no MEMORY.md, nao no transcript.
+// Depois do turno, derruba o binding com /reset (custo zero) pra nao deixar sessao orfa — foi assim
+// que nasceram as sessoes "explicit:gateway-fallback-*" que ninguem vigiava.
+function agenteEfemero(agentId, prompt, { modelo, timeout = 660_000, json = true, tag = "job" } = {}) {
+  const chave = `agent:${agentId}:${tag}:${Date.now().toString(36)}`;
+  const args = ["agent", "--agent", agentId, "--session-key", chave, "--message", prompt, "--timeout", "600"];
+  if (json) args.push("--json");
+  if (modelo) args.push("--model", modelo);
+  const out = agente(args, timeout);
+  // Encerra a sessao do job. Falha aqui nao invalida o trabalho — so deixa uma sessao pro guard.
+  if (!out.semCota) {
+    try {
+      spawnSync("openclaw", ["agent", "--agent", agentId, "--session-key", chave, "--message", "/reset"], { encoding: "utf8", timeout: 120_000 });
+    } catch {}
+  }
+  return out;
 }
 
 // parser simples de flags --chave valor / --chave=valor
@@ -750,11 +798,19 @@ const run = {
   },
   async "demo-revisao"() {
     // Invoca o Revisor (subagente da Nobara) pra QA interno ANTES do Critico. Sai != 0 se "VOLTA".
-    const { rest } = parseFlags(args);
+    const { flags, rest } = parseFlags(args);
     const slug = rest[0];
     if (!slug) return console.error("uso: demo-revisao <slug>  (invoca o Revisor por gateway pra QA barato antes do Critico)");
     const dir = resolve(ROOT, slug);
     if (!existsSync(resolve(dir, "index.html"))) return console.error(`index.html nao existe em ${dir}. A Nobara escreve o site DO BRIEF antes.`);
+    // Gates objetivos ANTES do Revisor: barato, deterministico e mais confiavel que LLM pra isso.
+    const objetivos = await gatesObjetivos(slug, dir);
+    if (objetivos.length && !flags.force) {
+      console.error(`VOLTA PRA NOBORA (gates objetivos, sem gastar o Revisor):\n`);
+      for (const p of objetivos) console.error(`  - ${p}`);
+      console.error(`\nCorrija isto e rode de novo. O Revisor so entra quando o basico esta limpo.`);
+      process.exit(1);
+    }
     const v = rodarRevisor(slug, dir);
     if (v.erro) { console.error(`Revisor indisponivel: ${v.erro}. Cheque o gateway (openclaw agent --agent revisor).`); process.exit(2); }
     if (v.pronto) { console.log(`Revisor: PRONTO PRO CRITICO ✓ — pode rodar demo-publicar ${slug}.`); process.exit(0); }
@@ -976,7 +1032,7 @@ const run = {
       try { unlinkSync(critPath); } catch {} // remove qualquer critique auto-escrito; so vale o do Critico
       console.log("Chamando o Critico (juiz independente) por gateway pra avaliar o site...");
       const critMsg = `Julgue o demo "${slug}". Leia demos/${slug}/BRIEF.md e demos/${slug}/index.html, OLHE os screenshots demos/${slug}/_qa/desktop.png, mobile.png e tablet.png, e escreva demos/${slug}/_qa/critique.json no formato do seu SOUL (score, genericity_score, brief_execution_score, richness_score, missing_content, blockers, craft_issues, verdict). Seja impiedoso com GENERICO e com site XUCRO (poucas secoes / pouca info do que o negocio faz). Responda so "avaliado" no fim.`;
-      const { r: jc, semCota: critSemCota } = agente(["agent", "--agent", "critico", "--json", "--timeout", "300", "--message", critMsg], 340000);
+      const { r: jc, semCota: critSemCota } = agenteEfemero("critico", critMsg, { timeout: 340000, tag: slug });
       if (critSemCota || !jc) { console.error("PUBLICACAO ADIADA — conta sem cota pra chamar o Critico. Nada foi publicado; tente apos o reset."); logBlock("cota", "sem cota para o Critico"); process.exit(1); }
       if (!existsSync(critPath)) {
         console.error("PUBLICACAO BLOQUEADA — o Critico nao devolveu o veredito (_qa/critique.json). Saida:\n" + ((jc.stdout || "") + (jc.stderr || "")).slice(-500));

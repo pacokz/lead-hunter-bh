@@ -77,3 +77,53 @@ registra até quando, e para.
 - **Tiering preventivo** (Fundação/Revisor em Sonnet, correções localizadas em modelo menor).
 - **Pool de capacidade separado** para jobs headless, para uma fábrica de demos não derrubar o canal
   de conversa dos donos.
+
+## Pacote de custo (30/07/2026)
+
+Três mudanças, todas medidas antes e depois com `ops/medir.mjs`.
+
+### 1. Gates objetivos antes do Revisor
+
+Antes: o Revisor gastava duas passadas de Opus (6m03 na demo do Évora) procurando defeito objetivo —
+e **errou**, afirmando duas vezes que não havia `href="#"` num arquivo que tinha. O gate determinístico
+achou em 19 segundos, depois dele.
+
+Agora `demo-revisao` roda `check.py` + gate de conversão/contato **antes** de invocar o Revisor. Se o
+básico está sujo, devolve pra Nobara sem gastar turno de LLM. O Revisor só entra pra fazer o que
+`grep` não faz: conferir fato contra o mundo real (foi ele quem pegou o `wa.me` apontando pra linha
+fixa, que nenhum gate pegaria).
+
+### 2. Tiering por papel
+
+Medido: **85 dos 86 turnos do dia rodaram em Opus 4.8**, inclusive os workers "baratos".
+
+- **Fundação → Sonnet 4.6**: traduz um contrato (BRIEF → tokens), não decide.
+- **Revisor → Sonnet 4.6**: confere fatos contra fontes; não precisa do modelo mais caro.
+- **Correções localizadas → Sonnet** (`MODELO.correcao` no `lh.mjs`).
+- **Crítico continua em Opus**: é ele quem julga o craft. Rebaixar o juiz sem medir seria trocar
+  qualidade por cota — decisão para depois de 10 runs com métrica.
+
+Configurado em `openclaw.json` na forma de **objeto com `fallbacks`** (string vira `fallbacks: []`,
+que é um "sem fallback" explícito — armadilha já documentada). Override por env:
+`LH_MODELO_FUNDACAO`, `LH_MODELO_REVISOR`, `LH_MODELO_CORRECAO`.
+
+### 3. Sessão efêmera por etapa
+
+Medido no Évora: Revisor terminou em **111k** e Fundação em **69k** — para um único job. Eles
+retomavam a própria sessão e carregavam tudo que já tinham feito antes.
+
+Como o trabalho deles é stateless por demo (leem arquivo, escrevem arquivo), `agenteEfemero()` cria
+uma `--session-key` nova por job (`agent:<id>:<slug>:<ts>`) e, ao terminar, derruba o binding com
+`/reset` (custo zero de token). Isso ataca o maior desperdício observado — reenviar 100–153k de
+contexto para corrigir três linhas — e evita deixar sessão órfã, que foi como nasceram as
+`explicit:gateway-fallback-*` que ninguém vigiava.
+
+O aprendizado durável continua no `MEMORY.md`, não no transcript do job.
+
+### Como medir
+
+```bash
+node ops/medir.mjs --desde '14:40' --ate '18:05'
+```
+
+Mostra turnos por modelo, por trigger, tempo total e contexto das sessões ativas.
