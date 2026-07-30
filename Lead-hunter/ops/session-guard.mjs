@@ -46,8 +46,10 @@ const AGENTES = {
   critico: { nome: "Critico", ws: "workspace-critico" },
   comercial: { nome: "Yuji", ws: "workspace-comercial" },
   diagnosticador: { nome: "Megumi", ws: "workspace-diagnosticador" },
-  fundacao: { nome: "Fundação", ws: "workspace-fundacao" },
-  revisor: { nome: "Revisor", ws: "workspace-revisor" },
+  // Workers stateless da Nobora: crescem ~23k/job. Teto proprio menor => flush+reset a cada ~1 job
+  // (rotacao por-job na pratica, mas pelo caminho SEGURO que exige flush antes do reset). Ajustavel.
+  fundacao: { nome: "Fundação", ws: "workspace-fundacao", limite: 65_000 },
+  revisor: { nome: "Revisor", ws: "workspace-revisor", limite: 65_000 },
 };
 
 function log(msg) {
@@ -169,7 +171,7 @@ const estado = lerEstado();
 const agora = Date.now();
 let agiu = 0;
 
-for (const [id, { nome, ws }] of Object.entries(AGENTES)) {
+for (const [id, { nome, ws, limite }] of Object.entries(AGENTES)) {
   if (SO_AGENTE && id !== SO_AGENTE) continue;
   const wsAbs = resolve(OC, ws);
 
@@ -189,11 +191,12 @@ for (const [id, { nome, ws }] of Object.entries(AGENTES)) {
     continue;
   }
   const k = (tokens / 1000).toFixed(0);
-  if (tokens < LIMITE && !FORCE) {
-    log(`[${id}] ${nome}: ${k}k tokens — abaixo do limite (${LIMITE / 1000}k), ok`);
+  const LIM = limite || LIMITE; // teto por-agente (workers rotacionam mais cedo); default = global
+  if (tokens < LIM && !FORCE) {
+    log(`[${id}] ${nome}: ${k}k tokens — abaixo do limite (${LIM / 1000}k), ok`);
     continue;
   }
-  log(`[${id}] ${nome}: ${k}k tokens — ACIMA do limite (${LIMITE / 1000}k)`);
+  log(`[${id}] ${nome}: ${k}k tokens — ACIMA do limite (${LIM / 1000}k)`);
 
   const ultimo = Number(estado[id]?.ultimaAcao || 0);
   const minDesde = (agora - ultimo) / 60000;
