@@ -17,7 +17,7 @@ pronto** — que o Samuel envia **manualmente** (WhatsApp/Instagram) para fechar
 ## Arquitetura
 
 ```
-┌─ HOST (Windows, nativo) ───────────────────────┐
+┌─ HOST (VPS, nativo — antes Windows) ───────────┐
 │  OpenClaw — agentes (orquestração, tema JJK)   │
 │  Discord (controle) · WhatsApp/IG (Samuel)     │
 └───────────────┬────────────────────────────────┘
@@ -42,10 +42,25 @@ pronto** — que o Samuel envia **manualmente** (WhatsApp/Instagram) para fechar
 | Orquestradora | **Sukuna** | Autônoma | coordena, prioriza, reporta no Discord |
 | Comercial | **Yuji** | Advice | monta pacote + CRM + copy (Samuel envia) |
 | Diagnosticador | **Megumi** | Advice | pós-venda: acha automações pra vender (upsell) |
-| Criadora de Demo | **Nobara** | Operador | gera o site HTML (só leads quentes) |
+| Diretor de Arte | **Nanami** | Operador | pesquisa referências reais e escreve o `BRIEF.md` da demo |
+| Criadora de Demo | **Nobara** | Operador | escreve o site do ZERO executando o BRIEF (só leads quentes) |
 
+Subagentes e juízes da rota da demo (invocados por gateway, não por @menção):
+
+| Agente | Invocado por | Função |
+|---|---|---|
+| **Fundação** | `demo-brief` (automático) | destila BRIEF + prints em `tokens.css` + `motion-spec.md` |
+| **Revisor** | `demo-revisao` / `demo-publicar` | QA barato ANTES do Crítico (gates + anti-vibe-code + anti-molde) |
+| **Crítico** | `demo-publicar` (obrigatório) | juiz **independente**: olha os screenshots e dá o veredito (`critique.json`) |
+
+> **Quem faz não dá a própria nota.** O Nanami escreveu o brief e a Nobara construiu o site —
+> por isso o Crítico é um agente separado e não pode ser pulado.
+>
 > Caçadora, Auditora, Analista e Curadora rodam como **skills/serviços** do backend
 > (busca Places, auditoria, score, refs de design) orquestrados pela Sukuna.
+>
+> A "alma" de cada agente fica em [`agents/`](agents/) (`SOUL.md`, `IDENTITY.md`, `MEMORY.md`,
+> `HEARTBEAT.md`).
 
 ---
 
@@ -88,24 +103,27 @@ curl http://localhost:8000/health/db     # {"status":"ok","database":"connected"
 ### 2. Frontend (Next.js)
 
 ```bash
-cd frontend
+cd frontend-v2
 npm install
 npm run dev -- -p 3100     # porta 3000 fica com outro app do Samuel
 ```
 
 Abre em **http://localhost:3100**.
 
-### 3. OpenClaw (nativo no Windows)
+### 3. OpenClaw (nativo, fora do Docker)
 
-Os agentes rodam **nativos** (não em Docker — Docker quebra skills/browser/mensageria).
-A skill `lead-hunter` (`openclaw-skill/lead-hunter/lh.mjs`) fala com o backend em
-`localhost:8000`. Ex.: `node lh.mjs audit <place_id>`.
+Os agentes rodam **nativos** (Docker quebra skills/browser/mensageria). A skill `lead-hunter`
+(`openclaw-skill/lead-hunter/lh.mjs`) fala com o backend na URL do `LH_API` (default
+`http://localhost:8000`). Ex.: `node skills/lead-hunter/lh.mjs status`.
+
+O ambiente dos agentes precisa de `LH_API`, `VERCEL_SCOPE` (time da Vercel onde a demo é
+publicada) e `DEMO_UPLOADS_DIR` — ver `.env.example`.
 
 ---
 
 ## Operação contínua (`ops/`)
 
-Crons agendados no **Task Scheduler do Windows** (prefixo `LeadHunter `):
+Crons agendados na VPS (**systemd**; no Windows era o Task Scheduler, prefixo `LeadHunter `):
 
 | Hora | Script | O que faz |
 |---|---|---|
@@ -115,6 +133,9 @@ Crons agendados no **Task Scheduler do Windows** (prefixo `LeadHunter `):
 | 08h + 3/3h | `heartbeat.mjs` | checa gateway/backend/db, alerta no Discord só se cair |
 | 22h | `analista.mjs` | lê transcripts (últimos 3 dias), propõe skills/fixes |
 | 3/3 dias | `notas-diarias.mjs` + `consolidacao.mjs` | memória dos agentes (nota diária → MEMORY.md) |
+| contínuo | `pedidos-watch.mjs` | vigia a fila do GERAR SITE **por código** — só acorda a Sukuna se houver pedido |
+| contínuo | `session-guard.mjs` | mede o contexto por turno, manda destilar a memória e rotaciona a sessão |
+| sob demanda | `medir.mjs` | consumo por janela: turnos, modelo, tempo, contexto e % de manutenção |
 
 > Webhook do Discord fica em `ops/.webhook.txt` (**fora do git**).
 
@@ -124,6 +145,7 @@ Crons agendados no **Task Scheduler do Windows** (prefixo `LeadHunter `):
 
 ```
 Lead-hunter/
+├── agents/                 # alma dos agentes (diretor-de-arte, criadora, fundacao, revisor, critico)
 ├── backend/
 │   ├── app/
 │   │   ├── api/            # rotas FastAPI
@@ -133,7 +155,8 @@ Lead-hunter/
 │   │   └── integrations/   # Google Places, site_auditor, site_screenshotter (Playwright)
 │   ├── migrations/         # Alembic
 │   └── tests/              # 51/51 passando
-├── frontend/               # Next.js 15 (App Router) + Tailwind + TanStack Query
+├── frontend-v2/            # interface de PRODUÇÃO (Next.js 15 + brand kit Balmor) — app.balmor.tech
+├── frontend/               # v1, mantida por referência
 ├── openclaw-skill/         # skills do OpenClaw (lead-hunter, demo, verifica-interface)
 ├── ops/                    # crons de operação (Node .mjs)
 ├── demos/                  # demos de site geradas (HTML)
