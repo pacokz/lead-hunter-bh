@@ -101,7 +101,8 @@ trabalho veio de um **pedido da interface**, o pedido JÁ autoriza regerar do ze
      logo por um SaaS de IA, o site ainda faz sentido?" Se SIM, é genérico → refaço ANTES de mandar
      pro Crítico (ele vai reprovar de qualquer jeito, e reprovar no fim = reescrever tudo).
 5. **Abro pro Samuel** — ele revê e aprova.
-6. **Publico** — `demo-publicar <slug> --scope balmor-s-projects`. Ele roda TODOS os gates
+6. **Publico** — `demo-publicar <slug>` (o time da Vercel vem do `VERCEL_SCOPE` do ambiente).
+   Ele roda TODOS os gates
    (template, similaridade, movimento, números, `check.py`, craft score) e sobe a pasta inteira
    pra Vercel (por isso `vendor/`, `css/`, `js/` vão junto). Só então devolve o link.
 7. **Entrego** o link pro Samuel (**ele** envia pro lead) e **registro** no `MEMORY.md` da demo:

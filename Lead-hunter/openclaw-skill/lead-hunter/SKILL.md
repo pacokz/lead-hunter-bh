@@ -16,7 +16,7 @@ Todos os comandos são executados via Node, a partir da RAIZ do workspace (camin
 node skills/lead-hunter/lh.mjs <comando> [args]
 ```
 
-(No Windows do Samuel o caminho absoluto é `C:\01-hermes\Lead-hunter\openclaw-skill\lead-hunter\lh.mjs`.)
+Sempre relativo ao workspace — **não use caminho absoluto**, ele muda a cada instalação.
 
 ## Comandos
 - `status` → visão geral (empresas, sem site, sites ruins, prioritários, uso da API, faixas)
@@ -24,14 +24,14 @@ node skills/lead-hunter/lh.mjs <comando> [args]
 - `lead <id>` → contexto completo de um lead (Google + auditoria + score)
 - `draft <id>` → gera rascunho de abordagem (WhatsApp). **NÃO envia** — o Samuel envia.
 - `demo-data <id> --site <url>` → entrega os MATERIAIS BRUTOS (dados reais + fotos baixadas + cor detectada) na pasta da demo. (Lead sem site/rede social: `demo-ig <slug> <@handle>` puxa as fotos reais do Instagram.)
-- `demo-auto <id> --site <url> --scope balmor-s-projects` → **cadeia COMPLETA sem parar**: materiais → Nanami (BRIEF) → Fundação (tokens) → você escreve o site → Revisor (até **2 correções** automáticas) → Crítico → deploy → **uma** mensagem no Discord com o link. Use quando o Samuel pedir a demo de um lead e não quiser acompanhar etapa por etapa. **Silêncio no caminho feliz**: não reporte progresso durante a cadeia. Se algo estourar (lead sem foto, BRIEF inválido, Revisor reprovando 3×, Crítico bloqueando), a cadeia **escala**: você recebe o motivo e conta pro Samuel — **não tente resolver sozinha nem recomeçar**. Quem escolhe o lead é sempre o Samuel; isto **não** varre a base.
+- `demo-auto <id> --site <url>` → **cadeia COMPLETA sem parar**: materiais → Nanami (BRIEF) → Fundação (tokens) → você escreve o site → Revisor (até **2 correções** automáticas) → Crítico → deploy → **uma** mensagem no Discord com o link. Use quando o Samuel pedir a demo de um lead e não quiser acompanhar etapa por etapa. **Silêncio no caminho feliz**: não reporte progresso durante a cadeia. Se algo estourar (lead sem foto, BRIEF inválido, Revisor reprovando 3×, Crítico bloqueando), a cadeia **escala**: você recebe o motivo e conta pro Samuel — **não tente resolver sozinha nem recomeçar**. Quem escolhe o lead é sempre o Samuel; isto **não** varre a base.
 - `demo-brief <slug>` → invoca o **Nanami** (Diretor de Arte) **por gateway** (não @menção) pra pesquisar referências e escrever `demos/<slug>/BRIEF.md`. Reinvoca o Nanami se o `validate-brief` reprovar. É a rota canônica do BRIEF — a Nobara **não** escreve o próprio BRIEF. **Ao validar, dispara automático a Fundação** (ver abaixo).
 - `demo-fundacao <slug>` → invoca a **Fundação** (subagente da Nobara) por gateway pra destilar o BRIEF + prints em `demos/<slug>/tokens.css` + `motion-spec.md`. Roda **automático no fim do `demo-brief`**; este comando só re-gera sozinho. Não-bloqueante.
 - `demo-revisao <slug>` → invoca o **Revisor** (subagente da Nobara) por gateway pra QA barato ANTES do Crítico: roda os gates objetivos + anti-vibe-code + anti-molde e escreve `demos/<slug>/_qa/revisao-interna.md`. Exit 0 = "PRONTO PRO CRITICO", exit 1 = "VOLTA PRA NOBORA". Também é gate no `demo-publicar`.
 - `demo-render <spec.json>` → **FALLBACK DEPRECIADO** (gera site templateado a partir de uma SPEC). **NÃO é o caminho principal** — o gate visual REPROVA o resultado dele na publicação. A rota canônica é a Nobara escrever o `index.html` do ZERO (ver passo a passo abaixo). Só use em emergência (lead 100% sem material).
 - `demo-similar <slug>` → compara a estrutura da demo com as anteriores e avisa se ficou MUITO PARECIDA (>75%) — pra não virar molde. Exit 1 se parecida demais.
-- `demo <id> --site <url do site atual>` → (FALLBACK) gera uma PRÉVIA de site via template. Sistema PARAMETRIZADO (varia por nicho): `--theme boutique|warm|bold|classic` (par de fontes + clima) e `--anim aurora,textgen,marquee,parallax,hoverzoom,shimmer` (escolha as animações). Sem flags, usa o tema/animações padrão do segmento. Baixa as fotos reais do site (`--site`); lead sem site nenhum omite `--site`. Outros overrides: `--accent #hex` (cor da marca real do lead), `--accent2 #hex`, `--headline`, `--sobre`, `--segmento`. Salva em `C:\01-hermes\Lead-hunter\demos\<slug>\`.
-- `demo-publicar <slug> --scope balmor-s-projects` → publica a prévia num link AO VIVO na Vercel (ex: `fialho-odontologia.vercel.app`) e devolve a URL. Também **registra no backend** (vincula demo→lead via `demos/<slug>/lead.json`, move o CRM pra DEMO_PRONTA e fecha o pedido do GERAR SITE, se houver).
+- `demo <id> --site <url do site atual>` → (FALLBACK) gera uma PRÉVIA de site via template. Sistema PARAMETRIZADO (varia por nicho): `--theme boutique|warm|bold|classic` (par de fontes + clima) e `--anim aurora,textgen,marquee,parallax,hoverzoom,shimmer` (escolha as animações). Sem flags, usa o tema/animações padrão do segmento. Baixa as fotos reais do site (`--site`); lead sem site nenhum omite `--site`. Outros overrides: `--accent #hex` (cor da marca real do lead), `--accent2 #hex`, `--headline`, `--sobre`, `--segmento`. Salva em `demos/<slug>/`.
+- `demo-publicar <slug>` → publica a prévia num link AO VIVO na Vercel e devolve a URL. O time da Vercel vem do `VERCEL_SCOPE` do ambiente (ou `--scope <time>`); **não escreva um time fixo aqui** — cada instalação tem o seu. Também **registra no backend** (vincula demo→lead via `demos/<slug>/lead.json`, move o CRM pra DEMO_PRONTA e fecha o pedido do GERAR SITE, se houver).
 - `demo-pedidos` → lista os pedidos do botão **GERAR SITE** da interface (Samuel/José pedem por lá, com instruções e fotos do Instagram do lead). **A Sukuna checa isso no heartbeat.**
 - `demo-pedido-status <id> <IN_PROGRESS|CANCELLED>` → marca que os agentes assumiram o pedido (a publicação fecha sozinho como PUBLISHED).
 - `crm` → leads no pipeline comercial, agrupados por estágio
@@ -87,7 +87,7 @@ A demo nasce da **rota criativa** (NÃO do template) — é isso que garante que
    (c) `demo-revisao <slug>` — o **Revisor** (subagente) faz o QA barato com olhos frescos e devolve
        "PRONTO PRO CRITICO" ou "VOLTA PRA NOBORA". Corrija o que ele apontar ANTES de publicar.
 5. Resuma pro Samuel (negócio, referências usadas, link do arquivo). Ele revisa/aprova.
-6. `demo-publicar <slug> --scope balmor-s-projects` — roda TODOS os gates (BRIEF real, template,
+6. `demo-publicar <slug>` — roda TODOS os gates (BRIEF real, template,
    similaridade, movimento, números, check.py, **Revisor** como triagem barata) **E chama o agente Crítico por gateway** (juiz
    independente, ≠ Nanami/Nobara) que olha os screenshots + BRIEF e escreve o veredito
    (`critique.json`: craft/genericity/brief_execution). Reprova genérico/nota baixa. Só então sobe.

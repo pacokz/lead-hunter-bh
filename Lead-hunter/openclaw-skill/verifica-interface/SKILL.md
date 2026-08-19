@@ -10,10 +10,13 @@ Renderiza o site num **navegador real** (desktop 1280 + mobile 390) e detecta er
 interface que nao da pra ver so lendo o codigo. É o **portao de qualidade** antes de publicar.
 
 ## Como rodar
+A partir da RAIZ do workspace (caminho relativo — funciona em qualquer instalação):
 ```
-python "C:\01-hermes\Lead-hunter\openclaw-skill\verifica-interface\check.py" "<caminho do index.html>"
+python skills/verifica-interface/check.py "<caminho do index.html>"
 ```
-Exemplo: `python "C:\01-hermes\Lead-hunter\openclaw-skill\verifica-interface\check.py" "C:\01-hermes\Lead-hunter\demos\<slug>\index.html"`
+Exemplo: `python skills/verifica-interface/check.py demos/<slug>/index.html`
+
+(Em Linux o executável costuma ser `python3`.)
 
 ## O que ele verifica (desktop + mobile)
 - **Overflow horizontal** — a pagina rola de lado (algo estoura a largura) → **[ALTA]**, bloqueante

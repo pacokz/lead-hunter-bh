@@ -35,3 +35,6 @@ screenshots/
 # === SO / editor ===
 .DS_Store
 Thumbs.db
+
+# === Ferramentas locais (config por máquina) ===
+.codex/

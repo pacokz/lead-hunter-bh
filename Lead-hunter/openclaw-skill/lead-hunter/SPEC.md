@@ -85,4 +85,4 @@ ticker, manifesto, services zigzag, stats band, gallery collage, cta band, conta
 5. `demo-render demos/<slug>/spec.json` → gera o `index.html`.
 6. `verifica-interface` (gate, 4 viewports) + `qa-visual` + `design-critique` + checklist da skill
    `web-design-guidelines` → corrija até limpo E bonito.
-7. `demo-publicar <slug> --scope balmor-s-projects` (o gate barra bug [ALTA]).
+7. `demo-publicar <slug>` (o gate barra bug [ALTA]).
